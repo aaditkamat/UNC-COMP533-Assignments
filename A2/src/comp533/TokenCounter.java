@@ -1,11 +1,12 @@
+package comp533;
+
 import gradingTools.comp533s19.assignment0.AMapReduceTracer;
-import util.trace.Tracer;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Scanner;
 
-public class TokenCounter extends AMapReduceTracer{
+public class TokenCounter extends AMapReduceTracer {
     public static void main(String[] args) {
         TokenCounter counter = new TokenCounter();
         Scanner inputHandler = new Scanner(System.in);

@@ -1,11 +1,14 @@
-import java.util.Scanner;
+package comp533;
+
+import comp533.controller.TokenCounterController;
+import comp533.model.TokenCounterModel;
+import comp533.view.TokenCounterView;
 
 public class TokenCounterMVC {
     public static void main(String[] args) {
-        Scanner inputHandler = new Scanner(System.in);
         TokenCounterController controller = new TokenCounterController();
         TokenCounterModel model = new TokenCounterModel();
         TokenCounterView view = new TokenCounterView();
-        controller.getUserInput(inputHandler, model, view);
+        controller.getUserInput(model, view);
     }
 }
