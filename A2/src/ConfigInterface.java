@@ -4,15 +4,15 @@ import comp533.controller.TokenCounterController;
 import comp533.joiner.Joiner;
 import comp533.keyvalue.KeyValue;
 import comp533.mapper.Mapper;
-import comp533.mapper.TokenCountingMapper;
-import comp533.mapper.TokenCountingMapperFactory;
+import comp533.mapper.TokenCounterMapper;
+import comp533.mapper.TokenCounterMapperFactory;
 import comp533.model.TokenCounterModel;
-import comp533.partitioner.Partitioner;
-import comp533.partitioner.PartitionerFactory;
+import comp533.partitioner.TokenCounterPartitioner;
+import comp533.partitioner.TokenCounterPartitionerFactory;
 import comp533.reducer.Reducer;
-import comp533.reducer.TokenCountingReducer;
-import comp533.reducer.TokenCountingReducerFactory;
-import comp533.slave.SlaveClass;
+import comp533.reducer.TokenCounterReducer;
+import comp533.reducer.TokenCounterReducerFactory;
+import comp533.slave.TokenCounterSlave;
 import comp533.view.TokenCounterView;
 
 interface ConfigInterface {
@@ -28,27 +28,27 @@ interface ConfigInterface {
 
 
     // Factories
-    Class<TokenCountingMapperFactory> getMapperFactory();
-    Class<TokenCountingReducerFactory> getReducerFactory();
-    Class<PartitionerFactory> getPartitionerFactory(); // A2
+    Class<TokenCounterMapperFactory> getMapperFactory();
+    Class<TokenCounterReducerFactory> getReducerFactory();
+    Class<TokenCounterPartitionerFactory> getPartitionerFactory(); // A2
 
     //KeyValue defining and processing class
     Class<KeyValue> getKeyValueClass();
-    Class<TokenCountingMapper> getTokenCountingMapperClass();
+    Class<TokenCounterMapper> getTokenCountingMapperClass();
     MyMapReduceConfiguration getIntSummingMapperClass(); // extra credit
-    Class<TokenCountingReducer> getReducerClass();
-    Class<Partitioner> getPartitionerClass();
+    Class<TokenCounterReducer> getReducerClass();
+    Class<TokenCounterPartitioner> getPartitionerClass();
 
     // Return instances of the required objects, using the relevant factories
     // if they return these objects by default
     Mapper<String, Integer> getTokenCountingMapper(); // default object returned by Mapper factory
     Object getIntSummingMapper();
     Reducer getReducer(); // default object returned by Reducer factory
-    Partitioner getPartitioner(); // default object returned by Reducer factory, needed in A2
+    TokenCounterPartitioner getPartitioner(); // default object returned by Reducer factory, needed in A2
 
     // --------------------A2------------------------
 
-    Class<SlaveClass> getSlaveClass();
+    Class<TokenCounterSlave> getSlaveClass();
     Class<Joiner> getJoinerClass();
     Class<Barrier> getBarrierClass();
 

@@ -1,9 +1,9 @@
 package comp533.reducer;
 
-public class TokenCountingReducerFactory {
+public class TokenCounterReducerFactory {
     private static Reducer reducer;
     static {
-        reducer = new TokenCountingReducer();
+        reducer = new TokenCounterReducer();
     }
 
     public static Reducer getReducer() {
@@ -11,6 +11,6 @@ public class TokenCountingReducerFactory {
     }
 
     public static void setReducer(Reducer reducer) {
-        TokenCountingReducerFactory.reducer = reducer;
+        TokenCounterReducerFactory.reducer = reducer;
     }
 }

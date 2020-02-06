@@ -4,9 +4,8 @@ import comp533.barrier.Barrier;
 import comp533.joiner.JoinerInterface;
 import comp533.keyvalue.KeyValue;
 import comp533.mapper.Mapper;
-import comp533.mapper.TokenCountingMapper;
-import comp533.reducer.TokenCountingReducer;
-import comp533.slave.SlaveClass;
+import comp533.mapper.TokenCounterMapper;
+import comp533.slave.TokenCounterSlave;
 import comp533.view.TokenCounterView;
 import gradingTools.comp533s19.assignment0.AMapReduceTracer;
 import util.trace.Tracer;
@@ -97,12 +96,16 @@ public class TokenCounterModel extends AMapReduceTracer {
 
     public void problemSplit(String newInputString) {
         String[] tokens = newInputString.split(" ");
-        Mapper<String, Integer> mapper = new TokenCountingMapper();
+        Mapper<String, Integer> mapper = new TokenCounterMapper();
         for (String token: tokens) {
             KeyValue<String, Integer> keyValue = mapper.map(token);
             this.produceBoundedBuffer(keyValue);
         }
         this.endEnqueue();
+    }
+
+    public void mergeResults() {
+
     }
 
     public void setInputString(String newInputString, TokenCounterView view) {
@@ -112,6 +115,7 @@ public class TokenCounterModel extends AMapReduceTracer {
         this.possiblyUnblockSlaveThreads();
         this.problemSplit(newInputString);
         this.joiner.join();
+        this.mergeResults();
         this.updateResult(view);
     }
 
@@ -147,7 +151,7 @@ public class TokenCounterModel extends AMapReduceTracer {
         List<Thread> oldThreads = this.threads;
         this.threads = new ArrayList<>(numThreads);
         for (int i = 0; i < numThreads; i++) {
-            SlaveClass slave = new SlaveClass(i, this);
+            TokenCounterSlave slave = new TokenCounterSlave(i, this);
             this.threads.add(new Thread(slave, "Slave" + i));
             LinkedList<KeyValue<String, Integer>> reductionQueue = new LinkedList<>();
             this.reductionQueueList.add(reductionQueue);

@@ -2,11 +2,11 @@ package comp533.slave;
 
 import comp533.model.TokenCounterModel;
 
-public class SlaveClass implements SlaveInterface {
+public class TokenCounterSlave implements SlaveInterface {
     private int threadId;
     private TokenCounterModel model;
 
-    public SlaveClass(int threadId, TokenCounterModel model) {
+    public TokenCounterSlave(int threadId, TokenCounterModel model) {
         this.threadId = threadId;
         this.model = model;
     }

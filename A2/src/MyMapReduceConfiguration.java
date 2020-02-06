@@ -4,15 +4,15 @@ import comp533.controller.TokenCounterController;
 import comp533.joiner.Joiner;
 import comp533.keyvalue.KeyValue;
 import comp533.mapper.Mapper;
-import comp533.mapper.TokenCountingMapper;
-import comp533.mapper.TokenCountingMapperFactory;
+import comp533.mapper.TokenCounterMapper;
+import comp533.mapper.TokenCounterMapperFactory;
 import comp533.model.TokenCounterModel;
-import comp533.partitioner.Partitioner;
-import comp533.partitioner.PartitionerFactory;
+import comp533.partitioner.TokenCounterPartitioner;
+import comp533.partitioner.TokenCounterPartitionerFactory;
 import comp533.reducer.Reducer;
-import comp533.reducer.TokenCountingReducer;
-import comp533.reducer.TokenCountingReducerFactory;
-import comp533.slave.SlaveClass;
+import comp533.reducer.TokenCounterReducer;
+import comp533.reducer.TokenCounterReducerFactory;
+import comp533.slave.TokenCounterSlave;
 import comp533.view.TokenCounterView;
 
 public class MyMapReduceConfiguration implements ConfigInterface {
@@ -42,18 +42,18 @@ public class MyMapReduceConfiguration implements ConfigInterface {
     }
 
     @Override
-    public Class<TokenCountingMapperFactory> getMapperFactory() {
-        return TokenCountingMapperFactory.class;
+    public Class<TokenCounterMapperFactory> getMapperFactory() {
+        return TokenCounterMapperFactory.class;
     }
 
     @Override
-    public Class<TokenCountingReducerFactory> getReducerFactory() {
-        return TokenCountingReducerFactory.class;
+    public Class<TokenCounterReducerFactory> getReducerFactory() {
+        return TokenCounterReducerFactory.class;
     }
 
     @Override
-    public Class<PartitionerFactory> getPartitionerFactory() {
-        return PartitionerFactory.class;
+    public Class<TokenCounterPartitionerFactory> getPartitionerFactory() {
+        return TokenCounterPartitionerFactory.class;
     }
 
     @Override
@@ -63,7 +63,7 @@ public class MyMapReduceConfiguration implements ConfigInterface {
 
     @Override
     public Mapper<String, Integer> getTokenCountingMapper() {
-        return TokenCountingMapperFactory.getMapper();
+        return TokenCounterMapperFactory.getMapper();
     }
 
     @Override
@@ -72,13 +72,13 @@ public class MyMapReduceConfiguration implements ConfigInterface {
     }
 
     @Override
-    public Class<TokenCountingReducer> getReducerClass() {
-        return TokenCountingReducer.class;
+    public Class<TokenCounterReducer> getReducerClass() {
+        return TokenCounterReducer.class;
     }
 
     @Override
-    public Class<TokenCountingMapper> getTokenCountingMapperClass() {
-        return TokenCountingMapper.class;
+    public Class<TokenCounterMapper> getTokenCountingMapperClass() {
+        return TokenCounterMapper.class;
     }
 
     @Override
@@ -87,13 +87,13 @@ public class MyMapReduceConfiguration implements ConfigInterface {
     }
 
     @Override
-    public Class<Partitioner> getPartitionerClass() {
-        return Partitioner.class;
+    public Class<TokenCounterPartitioner> getPartitionerClass() {
+        return TokenCounterPartitioner.class;
     }
 
     @Override
-    public Class<SlaveClass> getSlaveClass() {
-        return SlaveClass.class;
+    public Class<TokenCounterSlave> getSlaveClass() {
+        return TokenCounterSlave.class;
     }
 
     @Override
@@ -118,12 +118,12 @@ public class MyMapReduceConfiguration implements ConfigInterface {
 
     @Override
     public Reducer getReducer() {
-        return TokenCountingReducerFactory.getReducer();
+        return TokenCounterReducerFactory.getReducer();
     }
 
     @Override
-    public Partitioner getPartitioner() {
-        return PartitionerFactory.getPartitioner();
+    public TokenCounterPartitioner getPartitioner() {
+        return TokenCounterPartitionerFactory.getPartitioner();
     }
 
     @Override
