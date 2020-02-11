@@ -1,7 +1,7 @@
 import comp533.TokenCounterMVC;
-import comp533.barrier.Barrier;
+import comp533.barrier.TokenCounterBarrier;
 import comp533.controller.TokenCounterController;
-import comp533.joiner.Joiner;
+import comp533.joiner.TokenCounterJoiner;
 import comp533.keyvalue.KeyValue;
 import comp533.mapper.Mapper;
 import comp533.mapper.TokenCounterMapper;
@@ -49,8 +49,8 @@ interface ConfigInterface {
     // --------------------A2------------------------
 
     Class<TokenCounterSlave> getSlaveClass();
-    Class<Joiner> getJoinerClass();
-    Class<Barrier> getBarrierClass();
+    Class<TokenCounterJoiner> getJoinerClass();
+    Class<TokenCounterBarrier> getBarrierClass();
 
     // return some instance of the comp533.barrier.Barrier and comp533.joiner.Joiner classes
     Object getBarrier(int aNumThreads);

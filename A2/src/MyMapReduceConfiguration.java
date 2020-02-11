@@ -1,7 +1,7 @@
 import comp533.TokenCounterMVC;
-import comp533.barrier.Barrier;
+import comp533.barrier.TokenCounterBarrier;
 import comp533.controller.TokenCounterController;
-import comp533.joiner.Joiner;
+import comp533.joiner.TokenCounterJoiner;
 import comp533.keyvalue.KeyValue;
 import comp533.mapper.Mapper;
 import comp533.mapper.TokenCounterMapper;
@@ -97,23 +97,23 @@ public class MyMapReduceConfiguration implements ConfigInterface {
     }
 
     @Override
-    public Barrier getBarrier(int aNumThreads) {
-        return new Barrier(aNumThreads);
+    public TokenCounterBarrier getBarrier(int aNumThreads) {
+        return new TokenCounterBarrier(aNumThreads);
     }
 
     @Override
-    public Class<Barrier> getBarrierClass() {
-        return Barrier.class;
+    public Class<TokenCounterBarrier> getBarrierClass() {
+        return TokenCounterBarrier.class;
     }
 
     @Override
     public Object getJoiner(int aNumThreads) {
-        return new Joiner(aNumThreads);
+        return new TokenCounterJoiner(aNumThreads);
     }
 
     @Override
-    public Class<Joiner> getJoinerClass() {
-        return Joiner.class;
+    public Class<TokenCounterJoiner> getJoinerClass() {
+        return TokenCounterJoiner.class;
     }
 
     @Override
