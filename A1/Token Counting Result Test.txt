@@ -1,3 +1,0 @@
-a a a b aa aa
-testing 1 2 4 2 1
-quit
