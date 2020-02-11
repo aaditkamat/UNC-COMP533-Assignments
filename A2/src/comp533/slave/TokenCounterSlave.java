@@ -77,6 +77,7 @@ public class TokenCounterSlave extends AMapReduceTracer implements SlaveInterfac
         TokenCounterBarrier tokencounterBarrier = this.model.getBarrier();
         Reducer<String, Integer> reducer = TokenCounterReducerFactory.getReducer();
         while(true) {
+            Map<String, Integer> originalMap = this.model.getResult();
             this.splitBoundedBuffer();
             Map<String, Integer> partiallyReducedMap = this.reduceList(reducer, this.keyValueList);
             ArrayList<ConcurrentLinkedQueue<KeyValue<String, Integer>>> reductionQueueList = this.splitReduction(partiallyReducedMap);
@@ -88,6 +89,7 @@ public class TokenCounterSlave extends AMapReduceTracer implements SlaveInterfac
             }
             Joiner joiner = this.model.getJoiner();
             joiner.finished();
+            this.traceAddedToMap(originalMap, this.model.getResult());
             try {
                 this.synchronizedWait();
             } catch (InterruptedException ex) {
