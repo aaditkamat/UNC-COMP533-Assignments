@@ -4,6 +4,7 @@ import comp533.barrier.Barrier;
 import comp533.client.Client;
 import comp533.joiner.Joiner;
 import comp533.keyvalue.KeyValue;
+import comp533.view.View;
 import util.models.PropertyListenerRegisterer;
 
 import java.util.ArrayList;
@@ -19,8 +20,7 @@ public interface TokenCounter extends PropertyListenerRegisterer {
     Barrier getBarrier();
     Joiner getJoiner();
     void interruptThreads();
-    void setInputString(String newInputString);
-    int getId();
+    void setInputString(String newInputString, View view);
     void updateThreads();
-    void setNumThreads(int numThreads);
+    void setNumThreads(int numThreads, View view);
 }

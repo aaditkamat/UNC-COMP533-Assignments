@@ -13,9 +13,9 @@ public class TokenCounterReducer extends AMapReduceTracer implements Reducer<Str
         Map<String, Integer> map = new HashMap<>();
         for (KeyValue<String, Integer> keyValue: argList) {
             String key = keyValue.getKey();
-            Integer value = keyValue.getValue();
+            int value = keyValue.getValue();
             if (map.containsKey(key)) {
-                Integer sum = map.get(key);
+                int sum = map.get(key);
                 sum += value;
                 map.put(key, sum);
             } else {

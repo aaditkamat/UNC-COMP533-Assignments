@@ -16,17 +16,17 @@ public class TokenCounterJoiner extends AMapReduceTracer implements Joiner {
     public void finished() {
         this.finishedCtr += 1;
         this.traceJoinerFinishedTask(this, this.joinerCount, this.finishedCtr);
+        if (this.finishedCtr == this.joinerCount) {
+            this.synchronizedNotify();
+        }
     }
 
     public synchronized void join() {
         try {
-            if (this.finishedCtr == this.joinerCount) {
-                this.synchronizedNotify();
-                this.finishedCtr = 0;
-            } else {
-                //Tracer.userMessage("joinerCount: " + this.joinerCount + " finishedCtr: " + this.finishedCtr);
-                this.synchronizedWait();
-            }
+           this.traceJoinerWaitStart(this, this.joinerCount, this.finishedCtr);
+           this.synchronizedWait();
+           this.traceJoinerWaitEnd(this, this.joinerCount, this.finishedCtr);
+           this.finishedCtr = 0;
         } catch (InterruptedException ex){
             Tracer.error(ex.getMessage());
         }

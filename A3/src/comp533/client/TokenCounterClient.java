@@ -15,6 +15,7 @@ import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
+import java.rmi.server.UnicastRemoteObject;
 import java.util.List;
 import java.util.Map;
 
@@ -23,31 +24,28 @@ public class TokenCounterClient extends AMapReduceTracer implements Client {
         try {
             Registry rmiRegistry = LocateRegistry.getRegistry(1099);
             RemoteTokenCounter counter1 = (RemoteTokenCounter) rmiRegistry.lookup(RemoteTokenCounter.class.getName());
-            counter1.registerClient(new TokenCounterClient());
+            TokenCounterClient remoteClient = new TokenCounterClient();
+            UnicastRemoteObject.exportObject(remoteClient, 0);
+            rmiRegistry.rebind(TokenCounterClient.class.getName(), remoteClient);
+            counter1.registerClient(remoteClient);
+            remoteClient.synchronizedWait();
             AMapReduceTracer.traceExit(TokenCounter.class);
-        } catch (RemoteException | NotBoundException ex) {
+            System.exit(0);
+        } catch (RemoteException | NotBoundException | InterruptedException ex) {
             ex.printStackTrace();
         }
     }
 
-    public Map<String, Integer> reduce(List<KeyValue<String, Integer>> serializableKeyValuePairs) {
+    public Map<String, Integer> reduce(List<KeyValue<String, Integer>> serializableKeyValuePairs) throws RemoteException {
+        this.traceRemoteList(serializableKeyValuePairs);
         Reducer<String, Integer> reducer = TokenCounterReducerFactory.getReducer();
-        return reducer.reduce(serializableKeyValuePairs);
-    }
-
-    public void terminateClients() {
-        try {
-            this.synchronizedWait();
-            AMapReduceTracer.traceExit(TokenCounterClient.class);
-            System.exit(0);
-        } catch (InterruptedException ex) {
-            Tracer.error(ex.getMessage());
-        }
-
+        Map<String, Integer> result = reducer.reduce(serializableKeyValuePairs);
+        this.traceRemoteResult(result);
+        return result;
     }
 
     public void quit() {
-        this.synchronizedNotify();
         this.traceQuit();
+        this.synchronizedNotify();
     }
 }

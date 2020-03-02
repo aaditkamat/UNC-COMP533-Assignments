@@ -11,6 +11,7 @@ import comp533.mapper.Mapper;
 import comp533.mapper.TokenCounterMapper;
 import comp533.slave.Slave;
 import comp533.slave.TokenCounterSlave;
+import comp533.view.View;
 import gradingTools.comp533s19.assignment0.AMapReduceTracer;
 import util.trace.Tracer;
 
@@ -26,7 +27,6 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 public class DistributedTokenCounter extends AMapReduceTracer implements TokenCounter, RemoteTokenCounter {
     private final PropertyChangeSupport pcs = new PropertyChangeSupport(this);
     private Map<String, Integer> result;
-    private int id;
     private int numThreads;
     private List<Thread> threads;
     private List<Slave> slaves;
@@ -40,25 +40,19 @@ public class DistributedTokenCounter extends AMapReduceTracer implements TokenCo
     private Stack<Client> unassignedClients;
 
 
-    public DistributedTokenCounter(int id) {
+    public DistributedTokenCounter() {
         this.inputString = null;
         this.numThreads = 0;
         this.reductionQueueList = new ArrayList<>();
         this.slaves = new ArrayList<>();
-        this.boundedBuffer = new ArrayBlockingQueue<>(this.BUFFER_SIZE);
         this.registeredClients = new ArrayList<>();
         this.unassignedSlaves = new Stack<>();
         this.unassignedClients = new Stack<>();
-        this.id = id;
     }
 
     @Override
     public void addPropertyChangeListener(PropertyChangeListener listener) {
-        pcs.addPropertyChangeListener(listener);
-    }
-
-    protected void processPropertyChangeEvent(PropertyChangeEvent event) {
-        pcs.firePropertyChange(event);
+        this.pcs.addPropertyChangeListener(listener);
     }
 
     public String getInputString() {
@@ -79,7 +73,7 @@ public class DistributedTokenCounter extends AMapReduceTracer implements TokenCo
         }
     }
 
-    private void possiblyUnblockSlaveThreads() {
+    private void unblockSlaveThreads() {
         for (int i = 0; i < this.numThreads; i++) {
             Slave currentSlave = this.slaves.get(i);
             currentSlave.notifySlave();
@@ -94,14 +88,10 @@ public class DistributedTokenCounter extends AMapReduceTracer implements TokenCo
         }
     }
 
-    private void produceBoundedBuffer(KeyValue<String, Integer> keyValue) {
-        try {
-            this.traceEnqueueRequest(keyValue);
-            this.boundedBuffer.put(keyValue);
-            this.traceEnqueue(this.boundedBuffer);
-        } catch (InterruptedException ex) {
-            Tracer.error(ex.getMessage());
-        }
+    private void produceBoundedBuffer(KeyValue<String, Integer> keyValue) throws InterruptedException {
+        this.traceEnqueueRequest(keyValue);
+        this.boundedBuffer.put(keyValue);
+        this.traceEnqueue(this.boundedBuffer);
     }
 
     private void endEnqueue() {
@@ -124,7 +114,7 @@ public class DistributedTokenCounter extends AMapReduceTracer implements TokenCo
         }
     }
 
-    private void problemSplit() {
+    private void problemSplit() throws InterruptedException {
         String[] tokens = this.inputString.split(" ");
         Mapper<String, Integer> mapper = new TokenCounterMapper();
         for (String token: tokens) {
@@ -134,7 +124,7 @@ public class DistributedTokenCounter extends AMapReduceTracer implements TokenCo
         this.endEnqueue();
     }
 
-    private void mergeIntermediaryResults() {
+    private void mergeIntermediaryResults(View view) {
         Map<String, Integer> oldResult = this.result;
         this.result = new HashMap<>();
         for (ConcurrentLinkedQueue<KeyValue<String, Integer>> reductionQueue : this.reductionQueueList) {
@@ -147,25 +137,31 @@ public class DistributedTokenCounter extends AMapReduceTracer implements TokenCo
         PropertyChangeEvent updateResultEvent = new PropertyChangeEvent(this, "Result",
                 oldResult, this.result);
         this.pcs.firePropertyChange(updateResultEvent);
+        view.propertyChange(updateResultEvent);
     }
 
-    public void updateResult() {
+    private void updateResult(View view) throws InterruptedException {
         this.initializeStructures();
         this.clearReductionQueues();
         this.startThreads();
-        this.possiblyUnblockSlaveThreads();
+        this.unblockSlaveThreads();
         this.problemSplit();
         this.joiner.join();
-        this.mergeIntermediaryResults();
+        this.mergeIntermediaryResults(view);
     }
 
-    public void setInputString(String newInputString) {
-        String oldInputString = this.inputString;
-        this.inputString = newInputString;
-        PropertyChangeEvent updateInputStringEvent = new PropertyChangeEvent(this, "InputString",
-                oldInputString, newInputString);
-        this.pcs.firePropertyChange(updateInputStringEvent);
-        this.updateResult();
+    public void setInputString(String newInputString, View view) {
+        try {
+            String oldInputString = this.inputString;
+            this.inputString = newInputString;
+            PropertyChangeEvent updateInputStringEvent = new PropertyChangeEvent(this, "InputString",
+                    oldInputString, newInputString);
+            this.pcs.firePropertyChange(updateInputStringEvent);
+            view.propertyChange(updateInputStringEvent);
+            this.updateResult(view);
+        } catch (InterruptedException ex) {
+            Tracer.error(Arrays.toString(ex.getStackTrace()));
+        }
     }
 
     public int getNumThreads() {
@@ -192,10 +188,6 @@ public class DistributedTokenCounter extends AMapReduceTracer implements TokenCo
         return this.result;
     }
 
-    public int getId() {
-        return this.id;
-    }
-
     public void updateThreads() {
         List<Thread> oldThreads = this.threads;
         this.joiner = new TokenCounterJoiner(this.numThreads);
@@ -216,16 +208,16 @@ public class DistributedTokenCounter extends AMapReduceTracer implements TokenCo
         this.pcs.firePropertyChange(updateThreadsEvent);
     }
 
-    public void quit() {
-        for (Client registeredClient: registeredClients) {
-            registeredClient.quit();
-        }
-    }
-
-    public void registerClient(Client clientToRegister) throws RemoteException {
+    public void registerClient(Client clientToRegister) {
         this.traceRegister(clientToRegister);
         this.unassignedClients.add(clientToRegister);
         this.registeredClients.add(clientToRegister);
+    }
+
+    public void callClientQuit() throws RemoteException {
+        for (Client registeredClient: registeredClients) {
+            registeredClient.quit();
+        }
     }
 
     public void interruptThreads() {
@@ -235,7 +227,7 @@ public class DistributedTokenCounter extends AMapReduceTracer implements TokenCo
         }
     }
 
-    public void setNumThreads(int numThreads) {
+    public void setNumThreads(int numThreads, View view) {
         int oldNumThreads = this.numThreads;
         this.numThreads = numThreads;
         PropertyChangeEvent setNumThreadsEvent = new PropertyChangeEvent(this, "NumThreads",

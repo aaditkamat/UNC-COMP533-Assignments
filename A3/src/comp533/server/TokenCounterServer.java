@@ -7,6 +7,8 @@ import comp533.controller.TokenCounterController;
 import comp533.mvc.DistributedTokenCounter;
 import comp533.mvc.RemoteTokenCounter;
 import comp533.mvc.TokenCounter;
+import comp533.view.TokenCounterView;
+import comp533.view.View;
 import gradingTools.comp533s19.assignment0.AMapReduceTracer;
 import util.trace.Tracer;
 
@@ -22,10 +24,11 @@ public class TokenCounterServer {
     public static void main(String[] args) {
         try {
             rmiRegistry = LocateRegistry.createRegistry(1099);
-            RemoteTokenCounter counter1 = new DistributedTokenCounter(1);
+            RemoteTokenCounter counter1 = new DistributedTokenCounter();
             UnicastRemoteObject.exportObject(counter1, 0);
             rmiRegistry.rebind(RemoteTokenCounter.class.getName(), counter1);
-            Controller controller = new TokenCounterController();
+            View view = new TokenCounterView();
+            Controller controller = new TokenCounterController(counter1, view);
             controller.getUserInput(counter1);
             System.exit(0);
         } catch (RemoteException ex) {

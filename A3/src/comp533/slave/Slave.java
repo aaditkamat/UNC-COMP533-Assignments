@@ -9,8 +9,8 @@ import java.util.Map;
 
 public interface Slave extends Runnable {
     void notifySlave();
-    void splitBoundedBuffer();
-    Map<String, Integer> reduceList(Reducer<String, Integer> reducer, List<KeyValue<String, Integer>> list);
+    void splitBoundedBuffer() throws InterruptedException;
+    Map<String, Integer> reduceList(Reducer<String, Integer> reducer, List<KeyValue<String, Integer>> keyValuePairs);
     void signalQuit();
     void setClient(Client client);
 }

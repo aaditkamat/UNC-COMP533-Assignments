@@ -15,6 +15,7 @@ import util.trace.Tracer;
 
 import java.rmi.RemoteException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -36,25 +37,27 @@ public class TokenCounterSlave extends AMapReduceTracer implements Slave {
         this.synchronizedNotify();
     }
 
-    public void splitBoundedBuffer() {
+    public void splitBoundedBuffer() throws InterruptedException {
         ArrayBlockingQueue<KeyValue<String, Integer>> boundedBuffer = this.counter.getBoundedBuffer();
-        try {
-            while(true) {
-                this.traceDequeueRequest(boundedBuffer);
-                KeyValue<String, Integer> consumedItem = boundedBuffer.take();
-                if (consumedItem.getKey() == null) {
-                    break;
-                }
-                this.traceDequeue(consumedItem);
+        KeyValue<String, Integer> consumedItem = null;
+        while(consumedItem == null || consumedItem.getKey() != null) {
+            this.traceDequeueRequest(boundedBuffer);
+            consumedItem = boundedBuffer.take();
+            this.traceDequeue(consumedItem);
+            if (consumedItem.getKey() != null) {
                 this.keyValueList.add(consumedItem);
             }
-        } catch (InterruptedException ex) {
-            Tracer.error(ex.getMessage());
         }
     }
 
-    public Map<String, Integer> reduceList(Reducer<String, Integer> reducer, List<KeyValue<String, Integer>> list) {
-        return reducer.reduce(list);
+    public Map<String, Integer> reduceList(Reducer<String, Integer> reducer, List<KeyValue<String, Integer>> keyValuePairs) {
+        try {
+            this.traceRemoteList(keyValuePairs);
+            return this.client.reduce(keyValuePairs);
+        } catch (RemoteException | NullPointerException ex) {
+            return reducer.reduce(keyValuePairs);
+        }
+
     }
 
     private ArrayList<ConcurrentLinkedQueue<KeyValue<String, Integer>>> splitReduction(Map<String, Integer> partiallyReducedMap) {
@@ -63,6 +66,9 @@ public class TokenCounterSlave extends AMapReduceTracer implements Slave {
         for (Map.Entry<String, Integer> entry: partiallyReducedMap.entrySet()) {
             String key = entry.getKey();
             Integer value = entry.getValue();
+            if (key == null) {
+                break;
+            }
             int numOfPartitions = reduceQueueList.size();
             int index = partitioner.getPartition(key, value, numOfPartitions);
             this.tracePartitionAssigned(key, value, index, numOfPartitions);
@@ -77,10 +83,6 @@ public class TokenCounterSlave extends AMapReduceTracer implements Slave {
         this.traceClientAssignment(client);
     }
 
-    public Map<String, Integer> getResult() {
-        return this.client.reduce(this.keyValueList);
-    }
-
     public void signalQuit() {
         this.traceQuit();
     }
@@ -90,23 +92,23 @@ public class TokenCounterSlave extends AMapReduceTracer implements Slave {
         Barrier tokenCounterBarrier = this.counter.getBarrier();
         Reducer<String, Integer> reducer = TokenCounterReducerFactory.getReducer();
         while(true) {
-            Map<String, Integer> originalMap = this.counter.getResult();
-            this.splitBoundedBuffer();
-            Map<String, Integer> partiallyReducedMap = this.reduceList(reducer, this.keyValueList);
-            ArrayList<ConcurrentLinkedQueue<KeyValue<String, Integer>>> reductionQueueList = this.splitReduction(partiallyReducedMap);
-            tokenCounterBarrier.barrier();
-            this.traceSplitAfterBarrier(this.threadId, reductionQueueList);
-            for (ConcurrentLinkedQueue<KeyValue<String, Integer>> reductionQueue : reductionQueueList) {
-                List<KeyValue<String, Integer>> keyValues = List.copyOf(reductionQueue);
-                this.reduceList(reducer, keyValues);
-            }
             try {
+                Map<String, Integer> originalMap = this.counter.getResult();
+                this.splitBoundedBuffer();
+                Map<String, Integer> partiallyReducedMap = this.reduceList(reducer, this.keyValueList);
+                ArrayList<ConcurrentLinkedQueue<KeyValue<String, Integer>>> reductionQueueList = this.splitReduction(partiallyReducedMap);
+                tokenCounterBarrier.barrier();
+                this.traceSplitAfterBarrier(this.threadId, reductionQueueList);
+                for (ConcurrentLinkedQueue<KeyValue<String, Integer>> reductionQueue : reductionQueueList) {
+                    List<KeyValue<String, Integer>> keyValues = List.copyOf(reductionQueue);
+                    this.reduceList(reducer, keyValues);
+                }
                 Joiner joiner = this.counter.getJoiner();
                 joiner.finished();
                 this.traceAddedToMap(originalMap, this.counter.getResult());
                 this.synchronizedWait();
             } catch (InterruptedException ex) {
-                Tracer.error(ex.getMessage());
+                Tracer.error(Arrays.toString(ex.getStackTrace()));
                 break;
             }
         }
