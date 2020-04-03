@@ -19,12 +19,12 @@ public class TwoCoupledHalloweenSimulationsRMIRegistry {
         try {
             RMITraceUtility.setTracing();
             int port = RegistryArgsProcessor.getRegistryPort(args);
-            Registry registry = LocateRegistry.getRegistry(port);
+            Registry registry = LocateRegistry.createRegistry(port);
             RMIRegistryCreated.newCase(registry, port);
             Scanner scanner = new Scanner(System.in);
             scanner.nextLine();
         } catch (RemoteException ex) {
-            ex.getStackTrace();
+            ex.printStackTrace();
         }
     }
 

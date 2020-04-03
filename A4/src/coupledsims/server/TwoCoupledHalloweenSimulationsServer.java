@@ -7,7 +7,6 @@ import coupledsims.model.AStandAloneTwoCoupledHalloweenSimulations;
 import coupledsims.model.RemoteStandAloneTwoCoupledHalloweenSimulations;
 import util.annotations.Tags;
 import util.tags.DistributedTags;
-import util.trace.Tracer;
 import util.trace.factories.FactoryTraceUtility;
 import util.trace.misc.ThreadDelayed;
 import util.trace.port.consensus.ConsensusTraceUtility;
@@ -23,7 +22,7 @@ import java.rmi.server.UnicastRemoteObject;
 
 @Tags({DistributedTags.SERVER, DistributedTags.RMI})
 public class TwoCoupledHalloweenSimulationsServer extends AnAbstractSimulationParametersBean implements SimulationParametersListener {
-    private static TwoCoupledHalloweenSimulationsServer serverInstance = new TwoCoupledHalloweenSimulationsServer();
+    private static TwoCoupledHalloweenSimulationsServer serverInstance;
 
     public static TwoCoupledHalloweenSimulationsServer getSingleton() {
         return serverInstance;
@@ -37,17 +36,28 @@ public class TwoCoupledHalloweenSimulationsServer extends AnAbstractSimulationPa
         ThreadDelayed.enablePrint();
     }
 
+    protected Registry locateRegistry(int registryPort, String registryHost) throws RemoteException {
+        Registry rmiRegistry = LocateRegistry.getRegistry(registryPort);
+        RMIRegistryLocated.newCase(serverInstance, registryHost, registryPort, rmiRegistry);
+        return rmiRegistry;
+    }
+
+    protected RemoteStandAloneTwoCoupledHalloweenSimulations registerRMIObject(int serverPort, Registry rmiRegistry) throws RemoteException {
+        RemoteStandAloneTwoCoupledHalloweenSimulations simulation = new AStandAloneTwoCoupledHalloweenSimulations();
+        UnicastRemoteObject.exportObject(simulation, serverPort);
+        rmiRegistry.rebind(RemoteStandAloneTwoCoupledHalloweenSimulations.class.getName(), simulation);
+        RMIObjectRegistered.newCase(serverInstance, RemoteStandAloneTwoCoupledHalloweenSimulations.class.getName(), simulation, rmiRegistry);
+        return simulation;
+    }
+
     public static void main(String[] args) {
         try {
             setTracing();
             int registryPort = ServerArgsProcessor.getRegistryPort(args), serverPort = ServerArgsProcessor.getServerPort(args);
             String registryHost = ServerArgsProcessor.getRegistryHost(args);
-            Registry rmiRegistry = LocateRegistry.getRegistry(registryPort);
-            RemoteStandAloneTwoCoupledHalloweenSimulations simulation = new AStandAloneTwoCoupledHalloweenSimulations();
-            RMIRegistryLocated.newCase(serverInstance, registryHost, registryPort, rmiRegistry);
-            UnicastRemoteObject.exportObject(simulation, serverPort);
-            rmiRegistry.rebind(RemoteStandAloneTwoCoupledHalloweenSimulations.class.getName(), simulation);
-            RMIObjectRegistered.newCase(serverInstance, RemoteStandAloneTwoCoupledHalloweenSimulations.class.getName(), simulation, rmiRegistry);
+            serverInstance = new TwoCoupledHalloweenSimulationsServer();
+            Registry rmiRegistry = serverInstance.locateRegistry(registryPort, registryHost);
+            RemoteStandAloneTwoCoupledHalloweenSimulations simulation = serverInstance.registerRMIObject(serverPort, rmiRegistry);
             simulation.start(args);
         } catch (RemoteException ex) {
             ex.printStackTrace();
