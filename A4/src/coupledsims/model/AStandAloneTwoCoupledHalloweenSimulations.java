@@ -87,7 +87,7 @@ public class AStandAloneTwoCoupledHalloweenSimulations extends AnAbstractSimulat
         //Ideally the prefixes should be main args
         commandProcessor1 = createSimulation1(Simulation1.SIMULATION1_PREFIX);
         commandProcessor2 = createSimulation2(Simulation2.SIMULATION2_PREFIX);
-        simulation1Coupler = new coupledsims.coupler.ASimulationCoupler(commandProcessor1);
+        simulation1Coupler = new ASimulationCoupler(commandProcessor1);
         simulation2Coupler = new ASimulationCoupler(commandProcessor2);
         commandProcessor1.addPropertyChangeListener(simulation2Coupler);
         commandProcessor2.addPropertyChangeListener(simulation1Coupler);

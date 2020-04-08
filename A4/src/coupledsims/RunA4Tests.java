@@ -8,7 +8,7 @@ public class RunA4Tests {
 	public static void main(String[] args) {
 		Tracer.showInfo(true);
 		Assignment4Suite.main(args);
-		Assignment4Suite.setProcessTimeOut(100);
+		Assignment4Suite.setProcessTimeOut(45);
 	}
 
 }

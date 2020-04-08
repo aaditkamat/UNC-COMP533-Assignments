@@ -3,7 +3,6 @@ package coupledsims.registry;
 import assignments.util.mainArgs.RegistryArgsProcessor;
 import util.annotations.Tags;
 import util.tags.DistributedTags;
-import util.trace.Tracer;
 import util.trace.port.rpc.rmi.RMIRegistryCreated;
 import util.trace.port.rpc.rmi.RMITraceUtility;
 
