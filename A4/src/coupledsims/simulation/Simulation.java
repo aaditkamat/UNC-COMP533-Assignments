@@ -1,7 +1,8 @@
 package coupledsims.simulation;
 
 public interface Simulation {
-	public static int SIMULATION_Y_OFFSET = 0;
-	public static int SIMULATION_WIDTH = 400;
-	public static int SIMULATION_HEIGHT = 765;
+	int SIMULATION_Y_OFFSET = 0;
+	int SIMULATION_WIDTH = 400;
+	int SIMULATION_HEIGHT = 765;
+	int SIMULATION_X_OFFSET = 0;
 }

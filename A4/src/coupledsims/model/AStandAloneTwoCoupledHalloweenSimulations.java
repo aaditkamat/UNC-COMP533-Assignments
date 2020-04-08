@@ -6,8 +6,6 @@ import assignments.util.inputParameters.AnAbstractSimulationParametersBean;
 import assignments.util.mainArgs.ClientArgsProcessor;
 import coupledsims.coupler.ASimulationCoupler;
 import coupledsims.simulation.Simulation;
-import coupledsims.simulation.Simulation1;
-import coupledsims.simulation.Simulation2;
 import main.BeauAndersonFinalProject;
 import stringProcessors.HalloweenCommandProcessor;
 import util.interactiveMethodInvocation.SimulationParametersControllerFactory;
@@ -34,22 +32,22 @@ public class AStandAloneTwoCoupledHalloweenSimulations extends AnAbstractSimulat
     protected HalloweenCommandProcessor createSimulation1(String aPrefix) {
         return 	BeauAndersonFinalProject.createSimulation(
                 aPrefix,
-                coupledsims.simulation.Simulation1.SIMULATION1_X_OFFSET,
-                coupledsims.simulation.Simulation.SIMULATION_Y_OFFSET,
-                coupledsims.simulation.Simulation.SIMULATION_WIDTH,
-                coupledsims.simulation.Simulation.SIMULATION_HEIGHT,
-                coupledsims.simulation.Simulation1.SIMULATION1_X_OFFSET,
-                coupledsims.simulation.Simulation.SIMULATION_Y_OFFSET);
+                Simulation.SIMULATION_X_OFFSET,
+                Simulation.SIMULATION_Y_OFFSET,
+                Simulation.SIMULATION_WIDTH,
+                Simulation.SIMULATION_HEIGHT,
+                Simulation.SIMULATION_X_OFFSET,
+                Simulation.SIMULATION_Y_OFFSET);
     }
 
     protected  HalloweenCommandProcessor createSimulation2(String aPrefix) {
         return 	BeauAndersonFinalProject.createSimulation(
                 aPrefix,
-                coupledsims.simulation.Simulation2.SIMULATION2_X_OFFSET,
-                coupledsims.simulation.Simulation.SIMULATION_Y_OFFSET,
-                coupledsims.simulation.Simulation.SIMULATION_WIDTH,
-                coupledsims.simulation.Simulation.SIMULATION_HEIGHT,
-                coupledsims.simulation.Simulation2.SIMULATION2_X_OFFSET,
+                Simulation.SIMULATION_X_OFFSET,
+                Simulation.SIMULATION_Y_OFFSET,
+                Simulation.SIMULATION_WIDTH,
+                Simulation.SIMULATION_HEIGHT,
+                Simulation.SIMULATION_X_OFFSET,
                 Simulation.SIMULATION_Y_OFFSET);
     }
     /**
@@ -85,8 +83,8 @@ public class AStandAloneTwoCoupledHalloweenSimulations extends AnAbstractSimulat
         setTracing();
         processArgs(args);
         //Ideally the prefixes should be main args
-        commandProcessor1 = createSimulation1(Simulation1.SIMULATION1_PREFIX);
-        commandProcessor2 = createSimulation2(Simulation2.SIMULATION2_PREFIX);
+        commandProcessor1 = createSimulation1("1:");
+        commandProcessor2 = createSimulation2("2:");
         simulation1Coupler = new ASimulationCoupler(commandProcessor1);
         simulation2Coupler = new ASimulationCoupler(commandProcessor2);
         commandProcessor1.addPropertyChangeListener(simulation2Coupler);

@@ -5,7 +5,6 @@ import assignments.util.mainArgs.ClientArgsProcessor;
 import coupledsims.ASimulationCoupler;
 import coupledsims.server.RemoteServer;
 import coupledsims.server.Server;
-import coupledsims.simulation.Simulation1;
 import main.BeauAndersonFinalProject;
 import stringProcessors.HalloweenCommandProcessor;
 import util.annotations.Tags;
@@ -35,7 +34,8 @@ public class TwoCoupledHalloweenSimulationsClient extends AnAbstractSimulationPa
     private static TwoCoupledHalloweenSimulationsClient clientInstance = new TwoCoupledHalloweenSimulationsClient();
     Registry rmiRegistry;
     RemoteServer serverProxy;
-    protected PropertyChangeListener simulationCoupler;
+    transient protected PropertyChangeListener simulationCoupler;
+    static int numberOfClients = 0;
 
     public static TwoCoupledHalloweenSimulationsClient getSingleton() {
         return clientInstance;
@@ -44,16 +44,17 @@ public class TwoCoupledHalloweenSimulationsClient extends AnAbstractSimulationPa
     protected HalloweenCommandProcessor createSimulation(String aPrefix) {
         return 	BeauAndersonFinalProject.createSimulation(
                 aPrefix,
-                coupledsims.simulation.Simulation1.SIMULATION1_X_OFFSET,
+                coupledsims.simulation.Simulation.SIMULATION_X_OFFSET,
                 coupledsims.simulation.Simulation.SIMULATION_Y_OFFSET,
                 coupledsims.simulation.Simulation.SIMULATION_WIDTH,
                 coupledsims.simulation.Simulation.SIMULATION_HEIGHT,
-                coupledsims.simulation.Simulation1.SIMULATION1_X_OFFSET,
+                coupledsims.simulation.Simulation.SIMULATION_X_OFFSET,
                 coupledsims.simulation.Simulation.SIMULATION_Y_OFFSET);
     }
 
     protected TwoCoupledHalloweenSimulationsClient() {
-        this.commandProcessor = createSimulation(Simulation1.SIMULATION1_PREFIX);
+        numberOfClients += 1;
+        this.commandProcessor = createSimulation(numberOfClients + ":");
         this.simulationCoupler = new ASimulationCoupler(this.commandProcessor);
         this.commandProcessor.addPropertyChangeListener(this.simulationCoupler);
     }
