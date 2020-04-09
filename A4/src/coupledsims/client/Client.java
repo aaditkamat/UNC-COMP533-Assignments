@@ -10,7 +10,7 @@ import java.rmi.registry.Registry;
 public interface Client extends SimulationParametersListener {
     void setTracing();
     void locateRegistry(int registryPort, String registryHost);
-    void lookupRMIObject(String[] args);
+    void lookupServerProxy(String[] args);
     void start();
     void simulationCommand(String aCommand);
 }

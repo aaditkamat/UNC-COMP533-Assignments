@@ -5,7 +5,6 @@ import assignments.util.mainArgs.ServerArgsProcessor;
 import coupledsims.client.RemoteClient;
 import util.annotations.Tags;
 import util.tags.DistributedTags;
-import util.trace.Tracer;
 import util.trace.factories.FactoryTraceUtility;
 import util.trace.misc.ThreadDelayed;
 import util.trace.port.consensus.ConsensusTraceUtility;
@@ -13,10 +12,12 @@ import util.trace.port.consensus.ProposalLearnedNotificationSent;
 import util.trace.port.consensus.RemoteProposeRequestReceived;
 import util.trace.port.consensus.communication.CommunicationStateNames;
 import util.trace.port.nio.NIOTraceUtility;
+import util.trace.port.rpc.rmi.RMIObjectLookedUp;
 import util.trace.port.rpc.rmi.RMIObjectRegistered;
 import util.trace.port.rpc.rmi.RMIRegistryLocated;
 import util.trace.port.rpc.rmi.RMITraceUtility;
 
+import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
@@ -28,6 +29,7 @@ import java.util.List;
 public class TwoCoupledHalloweenSimulationsServer extends AnAbstractSimulationParametersBean implements Server, RemoteServer {
     private static TwoCoupledHalloweenSimulationsServer serverInstance = new TwoCoupledHalloweenSimulationsServer();;
     private List<RemoteClient> registeredClients;
+    private Registry rmiRegistry;
 
     TwoCoupledHalloweenSimulationsServer() {
         this.registeredClients = new ArrayList<>();
@@ -38,9 +40,8 @@ public class TwoCoupledHalloweenSimulationsServer extends AnAbstractSimulationPa
     }
 
     @Override
-    public void trace(boolean newValue) {
-        super.trace(newValue);
-        Tracer.showInfo(isTrace());
+    public void quit(int aCode) {
+        System.exit(aCode);
     }
 
     public void setTracing() {
@@ -52,20 +53,25 @@ public class TwoCoupledHalloweenSimulationsServer extends AnAbstractSimulationPa
         trace(true);
     }
 
-    public Registry locateRegistry(int registryPort, String registryHost) throws RemoteException {
-        Registry rmiRegistry = LocateRegistry.getRegistry(registryPort);
-        RMIRegistryLocated.newCase(this, registryHost, registryPort, rmiRegistry);
-        return rmiRegistry;
+    public void locateRegistry(int registryPort, String registryHost) throws RemoteException {
+        this.rmiRegistry = LocateRegistry.getRegistry(registryPort);
+        RMIRegistryLocated.newCase(this, registryHost, registryPort, this.rmiRegistry);
     }
 
-    public void exportServerProxy(int serverPort, Registry rmiRegistry) throws RemoteException {
+    public void exportServerProxy(int serverPort) throws RemoteException {
         UnicastRemoteObject.exportObject(this, serverPort);
-        rmiRegistry.rebind(RemoteServer.class.getName(), this);
+        this.rmiRegistry.rebind(RemoteServer.class.getName(), this);
         RMIObjectRegistered.newCase(this, RemoteServer.class.getName(), this, rmiRegistry);
     }
 
-    public void registerClients(RemoteClient clientProxy) {
-        this.registeredClients.add(clientProxy);
+    public void registerClients() {
+        try {
+            RemoteClient clientProxy = (RemoteClient) rmiRegistry.lookup(RemoteClient.class.getName());
+            RMIObjectLookedUp.newCase(this, clientProxy, Server.class.getName(), rmiRegistry);
+            this.registeredClients.add(clientProxy);
+        } catch (RemoteException | NotBoundException ex) {
+            ex.printStackTrace();
+        }
     }
 
     public void receiveRemoteProposeRequest(String aCommand, RemoteClient clientProxy) {
@@ -84,19 +90,14 @@ public class TwoCoupledHalloweenSimulationsServer extends AnAbstractSimulationPa
 
     }
 
-    @Override
-    public void atomicBroadcast(boolean newValue) {
-        super.atomicBroadcast(newValue);
-    }
-
     public static void main(String[] args) {
         try {
             int registryPort = ServerArgsProcessor.getRegistryPort(args), serverPort = ServerArgsProcessor.getServerPort(args);
             String registryHost = ServerArgsProcessor.getRegistryHost(args);
             TwoCoupledHalloweenSimulationsServer serverInstance = getSingleton();
             serverInstance.setTracing();
-            Registry rmiRegistry = serverInstance.locateRegistry(registryPort, registryHost);
-            serverInstance.exportServerProxy(serverPort, rmiRegistry);
+            serverInstance.locateRegistry(registryPort, registryHost);
+            serverInstance.exportServerProxy(serverPort);
         } catch (RemoteException ex) {
             ex.printStackTrace();
         }

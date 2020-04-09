@@ -19,6 +19,7 @@ import util.trace.port.consensus.*;
 import util.trace.port.consensus.communication.CommunicationStateNames;
 import util.trace.port.nio.NIOTraceUtility;
 import util.trace.port.rpc.rmi.RMIObjectLookedUp;
+import util.trace.port.rpc.rmi.RMIObjectRegistered;
 import util.trace.port.rpc.rmi.RMIRegistryLocated;
 import util.trace.port.rpc.rmi.RMITraceUtility;
 
@@ -27,9 +28,11 @@ import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
+import java.rmi.server.UnicastRemoteObject;
 
 @Tags({DistributedTags.CLIENT, DistributedTags.RMI})
 public class TwoCoupledHalloweenSimulationsClient extends AnAbstractSimulationParametersBean implements Client, RemoteClient {
+    private static final long serialVersionUID = 8681387667445501882L;
     HalloweenCommandProcessor commandProcessor;
     private static TwoCoupledHalloweenSimulationsClient clientInstance = new TwoCoupledHalloweenSimulationsClient();
     Registry rmiRegistry;
@@ -72,7 +75,7 @@ public class TwoCoupledHalloweenSimulationsClient extends AnAbstractSimulationPa
     @Override
     public void start() {
         try {
-            this.serverProxy.registerClients(this);
+            this.serverProxy.registerClients();
             setTracing();
             SimulationParametersControllerFactory.getSingleton().addSimulationParameterListener(this);
             SimulationParametersControllerFactory.getSingleton().processCommands();
@@ -97,18 +100,44 @@ public class TwoCoupledHalloweenSimulationsClient extends AnAbstractSimulationPa
         }
     }
 
-    public void receiveProposalLearnedNotification(String aCommand, boolean atomicBroadcastStatus) {
-        ProposalLearnedNotificationReceived.newCase(this, CommunicationStateNames.BROADCAST_MODE, -1, aCommand);
-        setAtomicBroadcast(atomicBroadcastStatus);
-        this.commandProcessor.setConnectedToSimulation(!isAtomicBroadcast());
-        ProposedStateSet.newCase(this, CommunicationStateNames.COMMAND, -1, aCommand);
-        this.commandProcessor.setInputString(aCommand);
-    }
-
     @Override
     public void trace(boolean newValue) {
         super.trace(newValue);
         Tracer.showInfo(isTrace());
+    }
+
+    @Override
+    public synchronized void setAtomicBroadcast(Boolean newValue) {
+        super.setAtomicBroadcast(newValue);
+        commandProcessor.setConnectedToSimulation(!isAtomicBroadcast());
+    }
+
+    @Override
+    public void quit(int aCode) {
+        System.exit(0);
+    }
+
+    @Override
+    public void localProcessingOnly(boolean newValue) {
+        super.localProcessingOnly(newValue);
+        if (isLocalProcessingOnly()) {
+            commandProcessor.removePropertyChangeListener(simulationCoupler);
+        } else {
+            commandProcessor.addPropertyChangeListener(simulationCoupler);
+        }
+    }
+
+    public void exportClientProxy() throws RemoteException {
+        UnicastRemoteObject.exportObject(this, 0);
+        this.rmiRegistry.rebind(RemoteClient.class.getName(), this);
+        RMIObjectRegistered.newCase(this, RemoteClient.class.getName(), this, rmiRegistry);
+    }
+
+    public void receiveProposalLearnedNotification(String aCommand, boolean atomicBroadcastStatus) {
+        ProposalLearnedNotificationReceived.newCase(this, CommunicationStateNames.BROADCAST_MODE, -1, aCommand);
+        ProposedStateSet.newCase(this, CommunicationStateNames.COMMAND, -1, aCommand);
+        HalloweenCommandProcessor commandProcessor = TwoCoupledHalloweenSimulationsClient.getSingleton().commandProcessor;
+        commandProcessor.setInputString(aCommand);
     }
 
     public void locateRegistry(int registryPort, String registryHost) {
@@ -120,7 +149,7 @@ public class TwoCoupledHalloweenSimulationsClient extends AnAbstractSimulationPa
         }
     }
 
-    public void lookupRMIObject(String[] args) {
+    public void lookupServerProxy(String[] args) {
         try {
             this.serverProxy = (RemoteServer) rmiRegistry.lookup(RemoteServer.class.getName());
             RMIObjectLookedUp.newCase(this, this.serverProxy, Server.class.getName(), rmiRegistry);
@@ -130,13 +159,18 @@ public class TwoCoupledHalloweenSimulationsClient extends AnAbstractSimulationPa
     }
 
     public static void main(String[] args) {
-        int registryPort = ClientArgsProcessor.getRegistryPort(args);
-        String registryHost = ClientArgsProcessor.getRegistryHost(args);
-        TwoCoupledHalloweenSimulationsClient clientInstance = getSingleton();
-        clientInstance.setTracing();
-        clientInstance.locateRegistry(registryPort, registryHost);
-        clientInstance.lookupRMIObject(args);
-        clientInstance.start();
+        try {
+            int registryPort = ClientArgsProcessor.getRegistryPort(args);
+            String registryHost = ClientArgsProcessor.getRegistryHost(args);
+            TwoCoupledHalloweenSimulationsClient clientInstance = new TwoCoupledHalloweenSimulationsClient();
+            clientInstance.setTracing();
+            clientInstance.locateRegistry(registryPort, registryHost);
+            clientInstance.lookupServerProxy(args);
+            clientInstance.exportClientProxy();
+            clientInstance.start();
+        } catch (RemoteException ex) {
+            ex.printStackTrace();
+        }
     }
 
 }
