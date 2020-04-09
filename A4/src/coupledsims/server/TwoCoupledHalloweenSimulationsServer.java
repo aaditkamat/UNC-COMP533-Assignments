@@ -50,7 +50,7 @@ public class TwoCoupledHalloweenSimulationsServer extends AnAbstractSimulationPa
         ConsensusTraceUtility.setTracing();
         NIOTraceUtility.setTracing();
         ThreadDelayed.enablePrint();
-        trace(true);
+        this.trace(true);
     }
 
     public void locateRegistry(int registryPort, String registryHost) throws RemoteException {
@@ -80,7 +80,7 @@ public class TwoCoupledHalloweenSimulationsServer extends AnAbstractSimulationPa
             if (!aClientProxy.equals(clientProxy)) {
                 try {
                     ProposalLearnedNotificationSent.newCase(this, CommunicationStateNames.BROADCAST_MODE, -1, aCommand);
-                    boolean atomicBroadcastStatus = isAtomicBroadcast();
+                    boolean atomicBroadcastStatus = this.isAtomicBroadcast();
                     aClientProxy.receiveProposalLearnedNotification(aCommand, atomicBroadcastStatus);
                 } catch (RemoteException ex) {
                     ex.printStackTrace();

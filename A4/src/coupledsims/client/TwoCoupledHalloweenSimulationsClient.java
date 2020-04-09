@@ -14,6 +14,8 @@ import util.tags.DistributedTags;
 import util.trace.Tracer;
 import util.trace.factories.FactoryTraceUtility;
 import util.trace.misc.ThreadDelayed;
+import util.trace.port.PerformanceExperimentEnded;
+import util.trace.port.PerformanceExperimentStarted;
 import util.trace.port.PortTraceUtility;
 import util.trace.port.consensus.*;
 import util.trace.port.consensus.communication.CommunicationStateNames;
@@ -33,10 +35,12 @@ import java.rmi.server.UnicastRemoteObject;
 @Tags({DistributedTags.CLIENT, DistributedTags.RMI})
 public class TwoCoupledHalloweenSimulationsClient extends AnAbstractSimulationParametersBean implements Client, RemoteClient {
     private static final long serialVersionUID = 8681387667445501882L;
-    HalloweenCommandProcessor commandProcessor;
+    protected HalloweenCommandProcessor commandProcessor;
+    protected int NUM_EXPERIMENT_COMMANDS = 500;
+    public static final String EXPERIMENT_COMMAND = "move 1 -1";
     private static TwoCoupledHalloweenSimulationsClient clientInstance = new TwoCoupledHalloweenSimulationsClient();
-    Registry rmiRegistry;
-    RemoteServer serverProxy;
+    protected Registry rmiRegistry;
+    protected RemoteServer serverProxy;
     transient protected PropertyChangeListener simulationCoupler;
     static int numberOfClients = 0;
 
@@ -69,14 +73,14 @@ public class TwoCoupledHalloweenSimulationsClient extends AnAbstractSimulationPa
         ConsensusTraceUtility.setTracing();
         NIOTraceUtility.setTracing();
         ThreadDelayed.enablePrint();
-        trace(true);
+        this.trace(true);
     }
 
     @Override
     public void start() {
         try {
             this.serverProxy.registerClients();
-            setTracing();
+            this.setTracing();
             SimulationParametersControllerFactory.getSingleton().addSimulationParameterListener(this);
             SimulationParametersControllerFactory.getSingleton().processCommands();
         } catch (RemoteException ex) {
@@ -84,12 +88,7 @@ public class TwoCoupledHalloweenSimulationsClient extends AnAbstractSimulationPa
         }
     }
 
-    @Override
-    public void simulationCommand(String aCommand) {
-        long aDelay = getDelay();
-        if (aDelay > 0) {
-            ThreadSupport.sleep(aDelay);
-        }
+    public void sendCommandRemotely(String aCommand) {
         ProposalMade.newCase(this, CommunicationStateNames.COMMAND, -1, aCommand);
         this.commandProcessor.setInputString(aCommand);
         RemoteProposeRequestSent.newCase(this, CommunicationStateNames.COMMAND, -1, aCommand);
@@ -98,6 +97,15 @@ public class TwoCoupledHalloweenSimulationsClient extends AnAbstractSimulationPa
         } catch (RemoteException ex) {
             ex.printStackTrace();
         }
+    }
+
+    @Override
+    public void simulationCommand(String aCommand) {
+        long aDelay = this.getDelay();
+        if (aDelay > 0) {
+            ThreadSupport.sleep(aDelay);
+        }
+        this.sendCommandRemotely(aCommand);
     }
 
     @Override
@@ -114,17 +122,36 @@ public class TwoCoupledHalloweenSimulationsClient extends AnAbstractSimulationPa
 
     @Override
     public void quit(int aCode) {
-        System.exit(0);
+        System.exit(aCode);
+        try {
+            this.serverProxy.quit(aCode);
+        } catch (RemoteException ex) {
+            ex.printStackTrace();
+        }
     }
 
     @Override
     public void localProcessingOnly(boolean newValue) {
         super.localProcessingOnly(newValue);
-        if (isLocalProcessingOnly()) {
+        if (this.isLocalProcessingOnly()) {
             commandProcessor.removePropertyChangeListener(simulationCoupler);
         } else {
             commandProcessor.addPropertyChangeListener(simulationCoupler);
         }
+    }
+
+    @Override
+    public void experimentInput() {
+        long aStartTime = System.currentTimeMillis();
+        PerformanceExperimentStarted.newCase(this, aStartTime, NUM_EXPERIMENT_COMMANDS);
+        boolean anOldValue = isTrace();
+        this.trace(false);
+        for (int i = 0; i < NUM_EXPERIMENT_COMMANDS; i++) {
+            this.simulationCommand(EXPERIMENT_COMMAND);
+        }
+        this.trace(anOldValue);
+        long anEndTime = System.currentTimeMillis();
+        PerformanceExperimentEnded.newCase(this, aStartTime, anEndTime, anEndTime - aStartTime, NUM_EXPERIMENT_COMMANDS);
     }
 
     public void exportClientProxy() throws RemoteException {
