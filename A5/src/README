@@ -1,0 +1,30 @@
+There are two main classes, TwoCoupledHalloweenSimulations and TwoCoupledVetoingHalloweenSimulations.
+They couple two simulations in the same process – your task in Comp533 will be 
+to couple simulations in (possibly an arbitrary number of)
+processes – this means you must run a different program for each process. 
+The project uses the referenced project AndersonBeauComp401FinalProject,
+a user-interface library I wrote, oeall22.jar, ObjectEditor, which is used by Beau’s code. 
+
+TwoCoupledHaloweenSimulations allows all commands to be executed. TwoCoupledVetoingHalloweenSimulations
+shows how one can veto certain changes - undo commands. 
+This is useful in 533 if you do extra credit to support locking, which would
+disable user input.
+
+The project includes also the file RunA1Tests, which is a template for how localchecks are run.
+These should all fail as the project does not handle distribution.
+
+Input the following commands in the console and see how they are translated to method calls. The only commands
+relevant to A1 are p, s, e.
+ 
+ p
+ a true
+ a false
+ i true
+ atomic true
+ s "move 30 20"
+ e
+ l false
+ t true
+ t false
+ q 0
+ 
