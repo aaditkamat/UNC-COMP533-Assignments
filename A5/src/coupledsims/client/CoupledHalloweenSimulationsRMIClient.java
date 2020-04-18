@@ -3,10 +3,11 @@ package coupledsims.client;
 import assignments.util.inputParameters.AnAbstractSimulationParametersBean;
 import assignments.util.mainArgs.ClientArgsProcessor;
 import coupledsims.ASimulationCoupler;
-import coupledsims.server.RemoteServer;
+import coupledsims.server.RMIServer;
 import main.BeauAndersonFinalProject;
 import stringProcessors.HalloweenCommandProcessor;
 import util.annotations.Tags;
+import util.interactiveMethodInvocation.IPCMechanism;
 import util.interactiveMethodInvocation.SimulationParametersControllerFactory;
 import util.misc.ThreadSupport;
 import util.tags.DistributedTags;
@@ -32,14 +33,14 @@ import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
 
 @Tags({DistributedTags.CLIENT, DistributedTags.RMI})
-public class CoupledHalloweenSimulationsRMIClient extends AnAbstractSimulationParametersBean implements Client, RemoteClient {
+public class CoupledHalloweenSimulationsRMIClient extends AnAbstractSimulationParametersBean implements Client, RMIClient {
     private static final long serialVersionUID = 8681387667445501882L;
     protected HalloweenCommandProcessor commandProcessor;
     protected int NUM_EXPERIMENT_COMMANDS = 500;
     public static final String EXPERIMENT_COMMAND = "move 1 -1";
     private static CoupledHalloweenSimulationsRMIClient clientInstance = new CoupledHalloweenSimulationsRMIClient();
     protected Registry rmiRegistry;
-    protected RemoteServer serverRMIProxy;
+    protected RMIServer serverRMIProxy;
     transient protected PropertyChangeListener simulationCoupler;
     static int numberOfClients = 0;
 
@@ -83,7 +84,7 @@ public class CoupledHalloweenSimulationsRMIClient extends AnAbstractSimulationPa
             this.locateRMIRegistry(rmiPort, rmiRegistryHost);
             this.lookupRMIServerProxy();
             this.exportRMIClientProxy();
-            this.serverRMIProxy.registerClients();
+            this.serverRMIProxy.registerRMIClients();
         } catch (RemoteException ex) {
             ex.printStackTrace();
         }
@@ -96,24 +97,45 @@ public class CoupledHalloweenSimulationsRMIClient extends AnAbstractSimulationPa
         SimulationParametersControllerFactory.getSingleton().processCommands();
     }
 
-    protected void sendCommandRemotely(String aCommand) {
+    protected void sendProposalViaRMI(Object aProposal, String stateName) {
         try {
-            ProposalMade.newCase(this, CommunicationStateNames.COMMAND, -1, aCommand);
-            this.commandProcessor.setInputString(aCommand);
-            RemoteProposeRequestSent.newCase(this, CommunicationStateNames.COMMAND, -1, aCommand);
-            this.serverRMIProxy.receiveRemoteProposeRequest(aCommand, this);
+            RemoteProposeRequestSent.newCase(this, stateName, -1, aProposal);
+            if (stateName.equals(CommunicationStateNames.COMMAND)) {
+                String aCommand = (String) aProposal;
+                this.commandProcessor.setInputString(aCommand);
+                this.serverRMIProxy.receiveCommandViaRMI(aCommand, this);
+            } else {
+                IPCMechanism ipcMechanism = (IPCMechanism) aProposal;
+                this.serverRMIProxy.receiveIPCMechanismViaRMI(ipcMechanism, this);
+            }
         } catch (RemoteException ex) {
             ex.printStackTrace();
         }
     }
 
+    protected void sendCommandViaRMI(String aCommand) {
+        this.sendProposalViaRMI(aCommand, CommunicationStateNames.COMMAND);
+    }
+
+    protected void sendIPCMechanismViaRMI(IPCMechanism ipcMechanism) {
+        this.sendProposalViaRMI(ipcMechanism, CommunicationStateNames.IPC_MECHANISM);
+    }
+
+    @Override
+    public void ipcMechanism(IPCMechanism newValue) {
+        super.ipcMechanism(newValue);
+//        this.sendIPCMechanismViaRMI(newValue);
+    }
+
     @Override
     public void simulationCommand(String aCommand) {
+        super.simulationCommand(aCommand);
         long aDelay = this.getDelay();
         if (aDelay > 0) {
             ThreadSupport.sleep(aDelay);
         }
-        this.sendCommandRemotely(aCommand);
+        this.commandProcessor.setInputString(aCommand);
+        this.sendCommandViaRMI(aCommand);
     }
 
     @Override
@@ -165,18 +187,28 @@ public class CoupledHalloweenSimulationsRMIClient extends AnAbstractSimulationPa
     public void exportRMIClientProxy() {
         try {
             UnicastRemoteObject.exportObject(this, 0);
-            this.rmiRegistry.rebind(RemoteClient.class.getName(), this);
-            RMIObjectRegistered.newCase(this, RemoteClient.class.getName(), this, this.rmiRegistry);
+            this.rmiRegistry.rebind(RMIClient.class.getName(), this);
+            RMIObjectRegistered.newCase(this, RMIClient.class.getName(), this, this.rmiRegistry);
         } catch (RemoteException ex) {
             ex.printStackTrace();
         }
     }
 
-    public void receiveProposalLearnedNotification(String aCommand, boolean atomicBroadcastStatus) {
-        ProposalLearnedNotificationReceived.newCase(this, CommunicationStateNames.BROADCAST_MODE, -1, aCommand);
-        ProposedStateSet.newCase(this, CommunicationStateNames.COMMAND, -1, aCommand);
-        HalloweenCommandProcessor commandProcessor = CoupledHalloweenSimulationsRMIClient.getSingleton().commandProcessor;
-        commandProcessor.setInputString(aCommand);
+    protected void receiveProposalLearnedNotification(String anObjectName, Object aProposal) {
+        ProposalLearnedNotificationReceived.newCase(this, CommunicationStateNames.BROADCAST_MODE, -1, anObjectName);
+        ProposedStateSet.newCase(this, anObjectName, -1, aProposal);
+        if (anObjectName.equals(CommunicationStateNames.COMMAND)) {
+            String aCommand = (String) aProposal;
+            HalloweenCommandProcessor commandProcessor = CoupledHalloweenSimulationsRMIClient.getSingleton().commandProcessor;
+            commandProcessor.setInputString(aCommand);
+        } else {
+            IPCMechanism ipcMechanism = (IPCMechanism) aProposal;
+            CoupledHalloweenSimulationsRMIClient.getSingleton().setIPCMechanism(ipcMechanism);
+        }
+    }
+
+    public void receiveProposalLearnedNotificationViaRMI(String anObjectName, Object aProposal) {
+        this.receiveProposalLearnedNotification(anObjectName, aProposal);
     }
 
     public void locateRMIRegistry(int registryPort, String registryHost) {
@@ -190,8 +222,8 @@ public class CoupledHalloweenSimulationsRMIClient extends AnAbstractSimulationPa
 
     public void lookupRMIServerProxy() {
         try {
-            this.serverRMIProxy = (RemoteServer) this.rmiRegistry.lookup(RemoteServer.class.getName());
-            RMIObjectLookedUp.newCase(this, this.serverRMIProxy, RemoteServer.class.getName(), rmiRegistry);
+            this.serverRMIProxy = (RMIServer) this.rmiRegistry.lookup(RMIServer.class.getName());
+            RMIObjectLookedUp.newCase(this, this.serverRMIProxy, RMIServer.class.getName(), rmiRegistry);
         } catch (RemoteException | NotBoundException ex) {
             ex.printStackTrace();
         }

@@ -2,8 +2,9 @@ package coupledsims.server;
 
 import assignments.util.inputParameters.AnAbstractSimulationParametersBean;
 import assignments.util.mainArgs.ServerArgsProcessor;
-import coupledsims.client.RemoteClient;
+import coupledsims.client.RMIClient;
 import util.annotations.Tags;
+import util.interactiveMethodInvocation.IPCMechanism;
 import util.interactiveMethodInvocation.SimulationParametersControllerFactory;
 import util.tags.DistributedTags;
 import util.trace.factories.FactoryTraceUtility;
@@ -27,9 +28,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Tags({DistributedTags.SERVER, DistributedTags.RMI})
-public class CoupledHalloweenSimulationsRMIServer extends AnAbstractSimulationParametersBean implements Server, RemoteServer {
+public class CoupledHalloweenSimulationsRMIServer extends AnAbstractSimulationParametersBean implements Server, RMIServer {
     private static CoupledHalloweenSimulationsRMIServer serverInstance = new CoupledHalloweenSimulationsRMIServer();
-    private List<RemoteClient> registeredRMIClients;
+    private List<RMIClient> registeredRMIClients;
     private Registry rmiRegistry;
 
     CoupledHalloweenSimulationsRMIServer() {
@@ -61,34 +62,41 @@ public class CoupledHalloweenSimulationsRMIServer extends AnAbstractSimulationPa
 
     public void exportServerProxy(int rmiServerPort) throws RemoteException {
         UnicastRemoteObject.exportObject(this, rmiServerPort);
-        this.rmiRegistry.rebind(RemoteServer.class.getName(), this);
-        RMIObjectRegistered.newCase(this, RemoteServer.class.getName(), this, this.rmiRegistry);
+        this.rmiRegistry.rebind(RMIServer.class.getName(), this);
+        RMIObjectRegistered.newCase(this, RMIServer.class.getName(), this, this.rmiRegistry);
     }
 
-    public void registerClients() {
+    public void registerRMIClients() {
         try {
-            RemoteClient clientProxy = (RemoteClient) this.rmiRegistry.lookup(RemoteClient.class.getName());
-            RMIObjectLookedUp.newCase(this, clientProxy, RemoteClient.class.getName(), this.rmiRegistry);
+            RMIClient clientProxy = (RMIClient) this.rmiRegistry.lookup(RMIClient.class.getName());
+            RMIObjectLookedUp.newCase(this, clientProxy, RMIClient.class.getName(), this.rmiRegistry);
             this.registeredRMIClients.add(clientProxy);
         } catch (RemoteException | NotBoundException ex) {
             ex.printStackTrace();
         }
     }
 
-    public void receiveRemoteProposeRequest(String aCommand, RemoteClient clientProxy) {
-        RemoteProposeRequestReceived.newCase(this, CommunicationStateNames.COMMAND, -1, aCommand);
-        for (RemoteClient aClientProxy: this.registeredRMIClients) {
-            if (!aClientProxy.equals(clientProxy)) {
-                try {
-                    ProposalLearnedNotificationSent.newCase(this, CommunicationStateNames.BROADCAST_MODE, -1, aCommand);
-                    boolean atomicBroadcastStatus = this.isAtomicBroadcast();
-                    aClientProxy.receiveProposalLearnedNotification(aCommand, atomicBroadcastStatus);
-                } catch (RemoteException ex) {
-                    ex.printStackTrace();
+    protected void receiveRequestViaRMI(String anObjectName, Object aProposal, RMIClient currentClientProxy) {
+        try {
+            RemoteProposeRequestReceived.newCase(this, anObjectName, -1, aProposal);
+            for (RMIClient otherClientProxy : this.registeredRMIClients) {
+                if (!otherClientProxy.equals(currentClientProxy)) {
+                    ProposalLearnedNotificationSent.newCase(this, CommunicationStateNames.BROADCAST_MODE, -1, anObjectName);
+                    otherClientProxy.receiveProposalLearnedNotificationViaRMI(anObjectName, aProposal);
                 }
             }
+        } catch (RemoteException ex) {
+            ex.printStackTrace();
         }
+    }
 
+    public void receiveCommandViaRMI(String aCommand, RMIClient clientProxy) {
+        this.receiveRequestViaRMI(CommunicationStateNames.COMMAND, aCommand, clientProxy);
+    }
+
+    @Override
+    public void receiveIPCMechanismViaRMI(IPCMechanism ipcMechanism, RMIClient clientProxy) {
+        this.receiveRequestViaRMI(CommunicationStateNames.IPC_MECHANISM, ipcMechanism, clientProxy);
     }
 
     protected void init(String[] args) {

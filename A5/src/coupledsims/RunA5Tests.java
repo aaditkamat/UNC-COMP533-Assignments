@@ -7,6 +7,6 @@ public class RunA5Tests {
 	public static void main(String[] args) {
 		Tracer.showInfo(true);
 		Assignment5Suite.main(args);
-		Assignment5Suite.setProcessTimeOut(45);
+		Assignment5Suite.setProcessTimeOut(60);
 	}
 }
