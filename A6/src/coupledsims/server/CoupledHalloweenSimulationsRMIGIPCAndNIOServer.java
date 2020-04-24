@@ -39,7 +39,7 @@ import java.util.concurrent.ArrayBlockingQueue;
 public class CoupledHalloweenSimulationsRMIGIPCAndNIOServer extends CoupledHalloweenSimulationsRMIAndGIPCServer implements NIOServer{
     private static CoupledHalloweenSimulationsRMIGIPCAndNIOServer serverInstance = new CoupledHalloweenSimulationsRMIGIPCAndNIOServer();
     private List<SocketChannel> socketChannels;
-    private ArrayBlockingQueue<ByteBufferSocketChannelInfo> messageQueue;
+    private final ArrayBlockingQueue<ByteBufferSocketChannelInfo> messageQueue;
     private NIOManager nioManager;
     private ServerRunnable serverRunnable;
 
@@ -47,6 +47,7 @@ public class CoupledHalloweenSimulationsRMIGIPCAndNIOServer extends CoupledHallo
         this.nioManager = NIOManagerFactory.getSingleton();
         this.socketChannels = new ArrayList<>();
         this.serverRunnable = new ServerRunnable(this);
+        this.messageQueue = new ArrayBlockingQueue<>(NIOServer.BUFFER_SIZE);
     }
 
     public static CoupledHalloweenSimulationsRMIAndGIPCServer getSingleton() {
@@ -96,6 +97,12 @@ public class CoupledHalloweenSimulationsRMIGIPCAndNIOServer extends CoupledHallo
     }
 
     @Override
+    public void quit(int aCode) {
+        super.quit(aCode);
+        this.notifyAll();
+    }
+
+    @Override
     public void start(String[] args) {
         this.init(args);
         Thread readThread = new Thread(this.serverRunnable);
@@ -124,10 +131,10 @@ public class CoupledHalloweenSimulationsRMIGIPCAndNIOServer extends CoupledHallo
         ByteBuffer readBuffer = MiscAssignmentUtils.deepDuplicate(newMessage);
         ByteBufferInfo messageInfo = new ByteBufferInfo(readBuffer, messageLength);
         ByteBufferSocketChannelInfo messageAndChannelInfo = new ByteBufferSocketChannelInfo(messageInfo, socketChannel);
-        if (this.messageQueue.remainingCapacity() > 0) {
-            this.messageQueue.add(messageAndChannelInfo);
-        } else {
+        if (this.messageQueue.remainingCapacity() == 0) {
             Tracer.error("The message queue is full");
+        } else {
+            this.messageQueue.add(messageAndChannelInfo);
         }
     }
 

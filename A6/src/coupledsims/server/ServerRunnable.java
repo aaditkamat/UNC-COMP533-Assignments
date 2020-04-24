@@ -5,7 +5,6 @@ import coupledsims.nio.ByteBufferSocketChannelInfo;
 
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
-import java.util.concurrent.ArrayBlockingQueue;
 
 public class ServerRunnable implements Runnable {
     NIOServer server;
@@ -15,11 +14,9 @@ public class ServerRunnable implements Runnable {
     }
 
     @Override
-    public void run() {
+    public synchronized void run() {
         try {
-            ArrayBlockingQueue<ByteBufferSocketChannelInfo> messageQueue = this.server.getMessageQueue();
-            ByteBufferSocketChannelInfo messageAndChannelInfo = messageQueue.take();
-            this.wait();
+            ByteBufferSocketChannelInfo messageAndChannelInfo = this.server.getMessageQueue().take();
             ByteBuffer message = messageAndChannelInfo.getMessageInfo().getMessage();
             int messageLength = messageAndChannelInfo.getMessageInfo().getMessageLength();
             SocketChannel socketChannel = messageAndChannelInfo.getSocketChannel();

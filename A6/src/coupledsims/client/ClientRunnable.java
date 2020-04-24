@@ -15,11 +15,13 @@ public class ClientRunnable implements Runnable {
     @Override
     public void run() {
         try {
-            ArrayBlockingQueue<ByteBufferInfo> messageQueue = this.client.getMessageQueue();
-            ByteBufferInfo messageInfo = messageQueue.take();
-            ByteBuffer message = messageInfo.getMessage();
-            int messageLength = messageInfo.getMessageLength();
-            this.client.receiveProposalLearnedNotificationViaNIO(message, messageLength);
+            synchronized(this.client.getMessageQueue()) {
+                ByteBufferInfo messageInfo = this.client.getMessageQueue().take();
+                ByteBuffer message = messageInfo.getMessage();
+                int messageLength = messageInfo.getMessageLength();
+                this.client.receiveProposalLearnedNotificationViaNIO(message, messageLength);
+                this.client.getMessageQueue().wait();
+            }
         } catch (InterruptedException ex) {
             ex.printStackTrace();
         }

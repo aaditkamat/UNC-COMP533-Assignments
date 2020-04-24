@@ -34,7 +34,7 @@ public class CoupledHalloweenSimulationsRMIGIPCAndNIOClient extends CoupledHallo
     private static CoupledHalloweenSimulationsRMIGIPCAndNIOClient clientInstance = new CoupledHalloweenSimulationsRMIGIPCAndNIOClient();
     private NIOManager nioManager;
     private ClientRunnable clientRunnable;
-    private ArrayBlockingQueue<ByteBufferInfo> messageQueue;
+    private final ArrayBlockingQueue<ByteBufferInfo> messageQueue;
     protected SocketChannel socketChannel;
 
     public SocketChannel getSocketChannel() {
@@ -110,10 +110,13 @@ public class CoupledHalloweenSimulationsRMIGIPCAndNIOClient extends CoupledHallo
         SocketChannelRead.newCase(this, socketChannel, newMessage, messageLength);
         ByteBuffer readBuffer = MiscAssignmentUtils.deepDuplicate(newMessage);
         ByteBufferInfo messageInfo = new ByteBufferInfo(readBuffer, messageLength);
-        if (this.messageQueue.remainingCapacity() > 0) {
+        synchronized (this.messageQueue) {
+            while (this.messageQueue.remainingCapacity() == 0) {
+                Tracer.error("The message queue is full");
+
+            }
             this.messageQueue.add(messageInfo);
-        } else {
-            Tracer.error("The message queue is full");
+            this.messageQueue.notifyAll();
         }
     }
 

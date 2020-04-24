@@ -60,8 +60,8 @@ public class CoupledHalloweenSimulationsRMIServer extends AnAbstractSimulationPa
         RMIRegistryLocated.newCase(this, registryHost, registryPort, this.rmiRegistry);
     }
 
-    public void exportServerProxy(int rmiServerPort) throws RemoteException {
-        UnicastRemoteObject.exportObject(this, rmiServerPort);
+    public void exportServerProxy() throws RemoteException {
+        UnicastRemoteObject.exportObject(this, 0);
         this.rmiRegistry.rebind(RMIServer.class.getName(), this);
         RMIObjectRegistered.newCase(this, RMIServer.class.getName(), this, this.rmiRegistry);
     }
@@ -102,10 +102,10 @@ public class CoupledHalloweenSimulationsRMIServer extends AnAbstractSimulationPa
     protected void init(String[] args) {
         try {
             this.setTracing();
-            int rmiRegistryPort = ServerArgsProcessor.getRegistryPort(args), rmiServerPort = ServerArgsProcessor.getServerPort(args);
+            int rmiRegistryPort = ServerArgsProcessor.getRegistryPort(args);
             String registryHost = ServerArgsProcessor.getRegistryHost(args);
             this.locateRegistry(rmiRegistryPort, registryHost);
-            this.exportServerProxy(rmiServerPort);
+            this.exportServerProxy();
         } catch (RemoteException ex) {
             ex.printStackTrace();
         }

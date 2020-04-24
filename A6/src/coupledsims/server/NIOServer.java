@@ -10,6 +10,7 @@ import java.util.concurrent.ArrayBlockingQueue;
 
 public interface NIOServer extends SocketChannelAcceptListener, SocketChannelReadListener {
     String READ_THREAD_NAME = "Read Thread";
+    int BUFFER_SIZE = 20;
     NIOManager getNioManager();
     ArrayBlockingQueue<ByteBufferSocketChannelInfo> getMessageQueue();
     void sendRequestViaNIO(String command, SocketChannel socketChannel);
