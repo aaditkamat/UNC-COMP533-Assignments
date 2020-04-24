@@ -1,5 +1,6 @@
 package coupledsims.client;
 
+import coupledsims.nio.ByteBufferInfo;
 import inputport.nio.manager.NIOManager;
 import inputport.nio.manager.listeners.SocketChannelConnectListener;
 

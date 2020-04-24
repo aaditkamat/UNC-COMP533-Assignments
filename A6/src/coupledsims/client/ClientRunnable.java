@@ -1,17 +1,12 @@
 package coupledsims.client;
 
-import inputport.nio.manager.NIOManager;
-import inputport.nio.manager.listeners.SocketChannelReadListener;
-import util.trace.port.nio.SocketChannelRead;
-import util.trace.port.nio.SocketChannelWritten;
+import coupledsims.nio.ByteBufferInfo;
 
 import java.nio.ByteBuffer;
-import java.nio.channels.SocketChannel;
 import java.util.concurrent.ArrayBlockingQueue;
 
 public class ClientRunnable implements Runnable {
     NIOClient client;
-    ByteBuffer message;
 
     public ClientRunnable(NIOClient client) {
         this.client = client;
@@ -22,6 +17,9 @@ public class ClientRunnable implements Runnable {
         try {
             ArrayBlockingQueue<ByteBufferInfo> messageQueue = this.client.getMessageQueue();
             ByteBufferInfo messageInfo = messageQueue.take();
+            ByteBuffer message = messageInfo.getMessage();
+            int messageLength = messageInfo.getMessageLength();
+            this.client.receiveProposalLearnedNotificationViaNIO(message, messageLength);
         } catch (InterruptedException ex) {
             ex.printStackTrace();
         }

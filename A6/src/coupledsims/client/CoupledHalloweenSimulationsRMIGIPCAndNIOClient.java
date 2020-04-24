@@ -2,11 +2,11 @@ package coupledsims.client;
 
 import assignments.util.MiscAssignmentUtils;
 import assignments.util.mainArgs.ClientArgsProcessor;
+import coupledsims.nio.ByteBufferInfo;
 import inputport.nio.manager.NIOManager;
 import inputport.nio.manager.NIOManagerFactory;
 import inputport.nio.manager.factories.classes.AConnectCommandFactory;
 import inputport.nio.manager.factories.selectors.ConnectCommandFactorySelector;
-import inputport.nio.manager.listeners.SocketChannelConnectListener;
 import inputport.nio.manager.listeners.SocketChannelReadListener;
 import util.annotations.Tags;
 import util.interactiveMethodInvocation.IPCMechanism;
@@ -27,15 +27,13 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
 
 @Tags({DistributedTags.RMI, DistributedTags.GIPC, DistributedTags.NIO, DistributedTags.CLIENT})
 public class CoupledHalloweenSimulationsRMIGIPCAndNIOClient extends CoupledHalloweenSimulationsRMIAndGIPCClient implements NIOClient, SocketChannelReadListener {
     private static CoupledHalloweenSimulationsRMIGIPCAndNIOClient clientInstance = new CoupledHalloweenSimulationsRMIGIPCAndNIOClient();
     private NIOManager nioManager;
-
+    private ClientRunnable clientRunnable;
     private ArrayBlockingQueue<ByteBufferInfo> messageQueue;
     protected SocketChannel socketChannel;
 
@@ -54,6 +52,7 @@ public class CoupledHalloweenSimulationsRMIGIPCAndNIOClient extends CoupledHallo
     public CoupledHalloweenSimulationsRMIGIPCAndNIOClient() {
         this.nioManager = NIOManagerFactory.getSingleton();
         this.messageQueue = new ArrayBlockingQueue<>(NIOClient.BUFFER_SIZE);
+        this.clientRunnable = new ClientRunnable(this);
     }
 
     public static CoupledHalloweenSimulationsRMIGIPCAndNIOClient getSingleton() {
@@ -84,10 +83,9 @@ public class CoupledHalloweenSimulationsRMIGIPCAndNIOClient extends CoupledHallo
             this.setFactories();
             int nioServerPort = ClientArgsProcessor.getNIOServerPort(args);
             this.socketChannel = SocketChannel.open();
-            this.socketChannel.configureBlocking(false);
             String hostName = ClientArgsProcessor.getServerHost(args);
             InetAddress serverAddress = InetAddress.getByName(hostName);
-            nioManager.connect(this.socketChannel, serverAddress, nioServerPort, this);
+            this.nioManager.connect(this.socketChannel, serverAddress, nioServerPort, this);
         } catch (IOException ex) {
             ex.printStackTrace();
         }
@@ -96,6 +94,9 @@ public class CoupledHalloweenSimulationsRMIGIPCAndNIOClient extends CoupledHallo
     @Override
     public void start(String[] args) {
         this.init(args);
+        Thread readThread = new Thread(this.clientRunnable);
+        readThread.setName(NIOClient.READ_THREAD_NAME);
+        readThread.start();
         SimulationParametersControllerFactory.getSingleton().addSimulationParameterListener(this);
         SimulationParametersControllerFactory.getSingleton().processCommands();
     }
@@ -118,16 +119,7 @@ public class CoupledHalloweenSimulationsRMIGIPCAndNIOClient extends CoupledHallo
 
     protected void sendCommandViaNIO(String command) {
         ByteBuffer message = ByteBuffer.wrap(command.getBytes());
-        ByteBufferInfo messageInfo = new ByteBufferInfo(message, command.length());
-        if (messageQueue.remainingCapacity() > 0) {
-            messageQueue.add(messageInfo);
-            ClientRunnable clientRunnable = new ClientRunnable(this);
-            Thread readThread = new Thread(clientRunnable);
-            readThread.setName(NIOClient.READ_THREAD_NAME);
-            readThread.start();
-        } else {
-            Tracer.error("Message queue is full");
-        }
+        this.nioManager.write(this.socketChannel, message);
     }
 
     @Override
