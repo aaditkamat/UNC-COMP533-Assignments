@@ -1,29 +1,36 @@
 package coupledsims.client;
 
 import coupledsims.nio.ByteBufferInfo;
+import gradingTools.comp533s19.assignment0.AMapReduceTracer;
 
 import java.nio.ByteBuffer;
 import java.util.concurrent.ArrayBlockingQueue;
 
-public class ClientRunnable implements Runnable {
+public class ClientRunnable extends AMapReduceTracer implements Runnable {
     NIOClient client;
 
     public ClientRunnable(NIOClient client) {
         this.client = client;
     }
 
+    public void notifyRunnable() {
+        this.synchronizedNotify();
+    }
+
     @Override
     public void run() {
-        try {
-            synchronized(this.client.getMessageQueue()) {
+        do {
+            try {
                 ByteBufferInfo messageInfo = this.client.getMessageQueue().take();
                 ByteBuffer message = messageInfo.getMessage();
                 int messageLength = messageInfo.getMessageLength();
-                this.client.receiveProposalLearnedNotificationViaNIO(message, messageLength);
-                this.client.getMessageQueue().wait();
+                String messageString = new String(message.array(), message.position(), messageLength);
+                this.client.receiveProposalLearnedNotificationViaNIO(messageString);
+                this.synchronizedWait();
+            } catch (NullPointerException | InterruptedException ex) {
+                ex.printStackTrace();
+                break;
             }
-        } catch (InterruptedException ex) {
-            ex.printStackTrace();
-        }
+        } while (true);
     }
 }

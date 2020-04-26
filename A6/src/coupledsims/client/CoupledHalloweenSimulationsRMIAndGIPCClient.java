@@ -4,10 +4,8 @@ import assignments.util.mainArgs.ClientArgsProcessor;
 import coupledsims.server.GIPCServer;
 import inputport.rpc.GIPCLocateRegistry;
 import inputport.rpc.GIPCRegistry;
-import util.annotations.Tags;
 import util.interactiveMethodInvocation.IPCMechanism;
 import util.interactiveMethodInvocation.SimulationParametersControllerFactory;
-import util.tags.DistributedTags;
 import util.trace.bean.BeanTraceUtility;
 import util.trace.port.consensus.RemoteProposeRequestSent;
 import util.trace.port.consensus.communication.CommunicationStateNames;
@@ -16,9 +14,8 @@ import util.trace.port.rpc.gipc.GIPCObjectRegistered;
 import util.trace.port.rpc.gipc.GIPCRPCTraceUtility;
 import util.trace.port.rpc.gipc.GIPCRegistryLocated;
 
-@Tags({DistributedTags.CLIENT, DistributedTags.RMI, DistributedTags.GIPC})
 public class CoupledHalloweenSimulationsRMIAndGIPCClient extends CoupledHalloweenSimulationsRMIClient implements GIPCClient{
-    private static CoupledHalloweenSimulationsRMIAndGIPCClient clientInstance = new CoupledHalloweenSimulationsRMIAndGIPCClient();
+    private static final CoupledHalloweenSimulationsRMIAndGIPCClient clientInstance = new CoupledHalloweenSimulationsRMIAndGIPCClient();
     private static int ctr = 0;
     private GIPCRegistry gipcRegistry;
     protected GIPCServer serverGIPCProxy;
@@ -89,10 +86,5 @@ public class CoupledHalloweenSimulationsRMIAndGIPCClient extends CoupledHallowee
         this.init(args);
         SimulationParametersControllerFactory.getSingleton().addSimulationParameterListener(this);
         SimulationParametersControllerFactory.getSingleton().processCommands();
-    }
-
-    public static void main(String[] args) {
-        CoupledHalloweenSimulationsRMIAndGIPCClient clientInstance = new CoupledHalloweenSimulationsRMIAndGIPCClient();
-        clientInstance.start(args);
     }
 }

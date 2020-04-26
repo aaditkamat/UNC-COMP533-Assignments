@@ -6,11 +6,9 @@ import coupledsims.ASimulationCoupler;
 import coupledsims.server.RMIServer;
 import main.BeauAndersonFinalProject;
 import stringProcessors.HalloweenCommandProcessor;
-import util.annotations.Tags;
 import util.interactiveMethodInvocation.IPCMechanism;
 import util.interactiveMethodInvocation.SimulationParametersControllerFactory;
 import util.misc.ThreadSupport;
-import util.tags.DistributedTags;
 import util.trace.Tracer;
 import util.trace.factories.FactoryTraceUtility;
 import util.trace.misc.ThreadDelayed;
@@ -32,13 +30,12 @@ import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
 
-@Tags({DistributedTags.CLIENT, DistributedTags.RMI})
 public class CoupledHalloweenSimulationsRMIClient extends AnAbstractSimulationParametersBean implements Client, RMIClient {
     private static final long serialVersionUID = 8681387667445501882L;
     protected HalloweenCommandProcessor commandProcessor;
     protected int NUM_EXPERIMENT_COMMANDS = 500;
     public static final String EXPERIMENT_COMMAND = "move 1 -1";
-    private static CoupledHalloweenSimulationsRMIClient clientInstance = new CoupledHalloweenSimulationsRMIClient();
+    private static final CoupledHalloweenSimulationsRMIClient clientInstance = new CoupledHalloweenSimulationsRMIClient();
     protected Registry rmiRegistry;
     protected RMIServer serverRMIProxy;
     transient protected PropertyChangeListener simulationCoupler;
@@ -80,9 +77,9 @@ public class CoupledHalloweenSimulationsRMIClient extends AnAbstractSimulationPa
         try {
             this.setTracing();
             System.setProperty("java.awt.headless", ClientArgsProcessor.getHeadless(args));
-            int rmiPort = ClientArgsProcessor.getRegistryPort(args);
+            int rmiRegistryPort = ClientArgsProcessor.getRegistryPort(args);
             String rmiRegistryHost = ClientArgsProcessor.getRegistryHost(args);
-            this.locateRMIRegistry(rmiPort, rmiRegistryHost);
+            this.locateRMIRegistry(rmiRegistryPort, rmiRegistryHost);
             this.lookupRMIServerProxy();
             this.exportRMIClientProxy();
             this.serverRMIProxy.registerRMIClients();
@@ -229,10 +226,4 @@ public class CoupledHalloweenSimulationsRMIClient extends AnAbstractSimulationPa
             ex.printStackTrace();
         }
     }
-
-    public static void main(String[] args) {
-        CoupledHalloweenSimulationsRMIClient clientInstance = new CoupledHalloweenSimulationsRMIClient();
-        clientInstance.start(args);
-    }
-
 }

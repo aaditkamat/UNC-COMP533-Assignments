@@ -4,7 +4,6 @@ import coupledsims.nio.ByteBufferInfo;
 import inputport.nio.manager.NIOManager;
 import inputport.nio.manager.listeners.SocketChannelConnectListener;
 
-import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 import java.util.concurrent.ArrayBlockingQueue;
 
@@ -14,5 +13,5 @@ public interface NIOClient extends SocketChannelConnectListener {
     NIOManager getNIOManager();
     SocketChannel getSocketChannel();
     ArrayBlockingQueue<ByteBufferInfo> getMessageQueue();
-    void receiveProposalLearnedNotificationViaNIO(ByteBuffer message, int messageLength);
+    void receiveProposalLearnedNotificationViaNIO(String command);
 }

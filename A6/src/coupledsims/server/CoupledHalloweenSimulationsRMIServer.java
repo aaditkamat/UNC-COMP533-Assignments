@@ -3,10 +3,8 @@ package coupledsims.server;
 import assignments.util.inputParameters.AnAbstractSimulationParametersBean;
 import assignments.util.mainArgs.ServerArgsProcessor;
 import coupledsims.client.RMIClient;
-import util.annotations.Tags;
 import util.interactiveMethodInvocation.IPCMechanism;
 import util.interactiveMethodInvocation.SimulationParametersControllerFactory;
-import util.tags.DistributedTags;
 import util.trace.factories.FactoryTraceUtility;
 import util.trace.misc.ThreadDelayed;
 import util.trace.port.consensus.ConsensusTraceUtility;
@@ -27,9 +25,8 @@ import java.rmi.server.UnicastRemoteObject;
 import java.util.ArrayList;
 import java.util.List;
 
-@Tags({DistributedTags.SERVER, DistributedTags.RMI})
 public class CoupledHalloweenSimulationsRMIServer extends AnAbstractSimulationParametersBean implements Server, RMIServer {
-    private static CoupledHalloweenSimulationsRMIServer serverInstance = new CoupledHalloweenSimulationsRMIServer();
+    private static final CoupledHalloweenSimulationsRMIServer serverInstance = new CoupledHalloweenSimulationsRMIServer();
     private List<RMIClient> registeredRMIClients;
     private Registry rmiRegistry;
 
@@ -115,10 +112,5 @@ public class CoupledHalloweenSimulationsRMIServer extends AnAbstractSimulationPa
         this.init(args);
         SimulationParametersControllerFactory.getSingleton().addSimulationParameterListener(this);
         SimulationParametersControllerFactory.getSingleton().processCommands();
-    }
-
-    public static void main(String[] args) {
-        CoupledHalloweenSimulationsRMIServer serverInstance = getSingleton();
-        serverInstance.start(args);
     }
 }

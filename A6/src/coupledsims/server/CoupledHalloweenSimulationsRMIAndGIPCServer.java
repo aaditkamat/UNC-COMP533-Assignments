@@ -7,9 +7,7 @@ import inputport.InputPort;
 import inputport.rpc.GIPCLocateRegistry;
 import inputport.rpc.GIPCRegistry;
 import port.ATracingConnectionListener;
-import util.annotations.Tags;
 import util.interactiveMethodInvocation.SimulationParametersControllerFactory;
-import util.tags.DistributedTags;
 import util.trace.bean.BeanTraceUtility;
 import util.trace.factories.FactoryTraceUtility;
 import util.trace.misc.ThreadDelayed;
@@ -28,9 +26,8 @@ import java.rmi.RemoteException;
 import java.util.ArrayList;
 import java.util.List;
 
-@Tags({DistributedTags.SERVER, DistributedTags.RMI, DistributedTags.GIPC})
 public class CoupledHalloweenSimulationsRMIAndGIPCServer extends CoupledHalloweenSimulationsRMIServer implements GIPCServer{
-    private static CoupledHalloweenSimulationsRMIAndGIPCServer serverInstance = new CoupledHalloweenSimulationsRMIAndGIPCServer();
+    private static final CoupledHalloweenSimulationsRMIAndGIPCServer serverInstance = new CoupledHalloweenSimulationsRMIAndGIPCServer();
     private List<GIPCClient> registeredGIPCClients;
     private GIPCRegistry gipcRegistry;
 
@@ -97,10 +94,5 @@ public class CoupledHalloweenSimulationsRMIAndGIPCServer extends CoupledHallowee
         GIPCClient clientProxy = (GIPCClient) this.gipcRegistry.lookup(GIPCClient.class, GIPCClient.class.getName());
         GIPCObjectLookedUp.newCase(this, clientProxy, GIPCClient.class, GIPCClient.class.getName(), this.gipcRegistry);
         this.registeredGIPCClients.add(clientProxy);
-    }
-
-    public static void main(String[] args) {
-        CoupledHalloweenSimulationsRMIAndGIPCServer serverInstance = getSingleton();
-        serverInstance.start(args);
     }
 }

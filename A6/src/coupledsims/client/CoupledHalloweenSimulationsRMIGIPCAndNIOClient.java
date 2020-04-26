@@ -19,6 +19,7 @@ import util.trace.misc.ThreadDelayed;
 import util.trace.port.consensus.ConsensusTraceUtility;
 import util.trace.port.consensus.communication.CommunicationStateNames;
 import util.trace.port.nio.NIOTraceUtility;
+import util.trace.port.nio.ReadListenerAdded;
 import util.trace.port.nio.SocketChannelRead;
 import util.trace.port.rpc.gipc.GIPCRPCTraceUtility;
 import util.trace.port.rpc.rmi.RMITraceUtility;
@@ -29,12 +30,11 @@ import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 import java.util.concurrent.ArrayBlockingQueue;
 
-@Tags({DistributedTags.RMI, DistributedTags.GIPC, DistributedTags.NIO, DistributedTags.CLIENT})
 public class CoupledHalloweenSimulationsRMIGIPCAndNIOClient extends CoupledHalloweenSimulationsRMIAndGIPCClient implements NIOClient, SocketChannelReadListener {
-    private static CoupledHalloweenSimulationsRMIGIPCAndNIOClient clientInstance = new CoupledHalloweenSimulationsRMIGIPCAndNIOClient();
+    private static final CoupledHalloweenSimulationsRMIGIPCAndNIOClient clientInstance = new CoupledHalloweenSimulationsRMIGIPCAndNIOClient();
     private NIOManager nioManager;
     private ClientRunnable clientRunnable;
-    private final ArrayBlockingQueue<ByteBufferInfo> messageQueue;
+    private ArrayBlockingQueue<ByteBufferInfo> messageQueue;
     protected SocketChannel socketChannel;
 
     public SocketChannel getSocketChannel() {
@@ -68,6 +68,7 @@ public class CoupledHalloweenSimulationsRMIGIPCAndNIOClient extends CoupledHallo
         ConsensusTraceUtility.setTracing();
         ThreadDelayed.enablePrint();
         GIPCRPCTraceUtility.setTracing();
+        Tracer.setMaxTraces(5000);
         this.trace(true);
     }
 
@@ -86,9 +87,16 @@ public class CoupledHalloweenSimulationsRMIGIPCAndNIOClient extends CoupledHallo
             String hostName = ClientArgsProcessor.getServerHost(args);
             InetAddress serverAddress = InetAddress.getByName(hostName);
             this.nioManager.connect(this.socketChannel, serverAddress, nioServerPort, this);
+            ReadListenerAdded.newCase(this, this.socketChannel, this);
         } catch (IOException ex) {
             ex.printStackTrace();
         }
+    }
+
+    @Override
+    public void quit(int aCode) {
+        this.clientRunnable.synchronizedNotify();
+        super.quit(aCode);
     }
 
     @Override
@@ -101,8 +109,7 @@ public class CoupledHalloweenSimulationsRMIGIPCAndNIOClient extends CoupledHallo
         SimulationParametersControllerFactory.getSingleton().processCommands();
     }
 
-    public void receiveProposalLearnedNotificationViaNIO(ByteBuffer message, int messageLength) {
-        String command = new String(message.array(), message.position(), messageLength);
+    public void receiveProposalLearnedNotificationViaNIO(String command) {
         this.receiveProposalLearnedNotification(CommunicationStateNames.COMMAND, command);
     }
 
@@ -110,13 +117,10 @@ public class CoupledHalloweenSimulationsRMIGIPCAndNIOClient extends CoupledHallo
         SocketChannelRead.newCase(this, socketChannel, newMessage, messageLength);
         ByteBuffer readBuffer = MiscAssignmentUtils.deepDuplicate(newMessage);
         ByteBufferInfo messageInfo = new ByteBufferInfo(readBuffer, messageLength);
-        synchronized (this.messageQueue) {
-            while (this.messageQueue.remainingCapacity() == 0) {
-                Tracer.error("The message queue is full");
-
-            }
+        if (this.messageQueue.remainingCapacity() == 0) {
+            Tracer.error("The message queue is full");
+        } else {
             this.messageQueue.add(messageInfo);
-            this.messageQueue.notifyAll();
         }
     }
 
@@ -142,10 +146,5 @@ public class CoupledHalloweenSimulationsRMIGIPCAndNIOClient extends CoupledHallo
     @Override
     public void notConnected(SocketChannel socketChannel, Exception ex) {
         ex.printStackTrace();
-    }
-
-    public static void main(String[] args) {
-        CoupledHalloweenSimulationsRMIGIPCAndNIOClient clientInstance = CoupledHalloweenSimulationsRMIGIPCAndNIOClient.getSingleton();
-        clientInstance.start(args);
     }
 }

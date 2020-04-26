@@ -8,9 +8,7 @@ import inputport.nio.manager.NIOManager;
 import inputport.nio.manager.NIOManagerFactory;
 import inputport.nio.manager.factories.classes.AnAcceptCommandFactory;
 import inputport.nio.manager.factories.selectors.AcceptCommandFactorySelector;
-import util.annotations.Tags;
 
-import util.tags.DistributedTags;
 import util.trace.Tracer;
 import util.trace.bean.BeanTraceUtility;
 import util.trace.factories.FactoryTraceUtility;
@@ -30,14 +28,12 @@ import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
-import java.rmi.RemoteException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
 
-@Tags({DistributedTags.RMI, DistributedTags.GIPC, DistributedTags.NIO, DistributedTags.SERVER})
 public class CoupledHalloweenSimulationsRMIGIPCAndNIOServer extends CoupledHalloweenSimulationsRMIAndGIPCServer implements NIOServer{
-    private static CoupledHalloweenSimulationsRMIGIPCAndNIOServer serverInstance = new CoupledHalloweenSimulationsRMIGIPCAndNIOServer();
+    private static final CoupledHalloweenSimulationsRMIGIPCAndNIOServer serverInstance = new CoupledHalloweenSimulationsRMIGIPCAndNIOServer();
     private List<SocketChannel> socketChannels;
     private final ArrayBlockingQueue<ByteBufferSocketChannelInfo> messageQueue;
     private NIOManager nioManager;
@@ -71,6 +67,7 @@ public class CoupledHalloweenSimulationsRMIGIPCAndNIOServer extends CoupledHallo
         ConsensusTraceUtility.setTracing();
         ThreadDelayed.enablePrint();
         GIPCRPCTraceUtility.setTracing();
+        Tracer.setMaxTraces(5000);
         this.trace(true);
     }
 
@@ -98,8 +95,8 @@ public class CoupledHalloweenSimulationsRMIGIPCAndNIOServer extends CoupledHallo
 
     @Override
     public void quit(int aCode) {
+        this.serverRunnable.notifyRunnable();
         super.quit(aCode);
-        this.notifyAll();
     }
 
     @Override
@@ -136,10 +133,5 @@ public class CoupledHalloweenSimulationsRMIGIPCAndNIOServer extends CoupledHallo
         } else {
             this.messageQueue.add(messageAndChannelInfo);
         }
-    }
-
-    public static void main(String[] args) {
-        CoupledHalloweenSimulationsRMIAndGIPCServer serverInstance = getSingleton();
-        serverInstance.start(args);
     }
 }
